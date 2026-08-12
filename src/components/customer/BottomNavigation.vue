@@ -21,6 +21,19 @@
         <span class="nav-label-text">Lịch sử</span>
       </router-link>
 
+      <router-link to="/customer/monthly-tickets" class="nav-interactive-item" active-class="is-link-active">
+        <div class="nav-icon-bounce-wrapper">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+            <path d="M6 8h12M6 12h12"/>
+          </svg>
+          <span v-if="hasActiveMonthlyTicket" class="nav-active-ticket-dot monthly"></span>
+        </div>
+        <span class="nav-label-text">Vé tháng</span>
+      </router-link>
+
       <router-link to="/customer/ticket" class="nav-interactive-item" active-class="is-link-active">
         <div class="nav-icon-bounce-wrapper">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -53,9 +66,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useTicketStore } from '@/stores/ticketStore'
+import { useMonthlyTicketStore } from '@/stores/monthlyTicketStore'
 
 const ticketStore = useTicketStore()
+const monthlyTicketStore = useMonthlyTicketStore()
+
 const hasActiveTicket = computed(() => !!ticketStore.activeTicket)
+const hasActiveMonthlyTicket = computed(() => monthlyTicketStore.hasActiveMonthlyTickets)
 </script>
 
 <style scoped>
@@ -95,6 +112,10 @@ const hasActiveTicket = computed(() => !!ticketStore.activeTicket)
 .nav-active-ticket-dot {
   position: absolute; top: -1px; right: -2px; width: 6px; height: 6px;
   background-color: #f43f5e; border-radius: 50%; border: 1px solid white;
+}
+
+.nav-active-ticket-dot.monthly {
+  background-color: #10b981; /* Green color for monthly tickets */
 }
 
 /* TRẠNG THÁI ACTIVE THƯƠNG HIỆU MỚI */
