@@ -159,18 +159,19 @@
 
             <div class="checkout-summary margin-top-16">
               <div class="final-price-box">
-                <span>{{ qrData.type === 'MONTHLY' ? 'Vé tháng không thu phí:' : 'Cần thu thêm:' }}</span>
-                <strong :class="qrData.type === 'MONTHLY' ? 'text-indigo-600' : 'text-rose-600'">
-                  {{ qrData.type === 'MONTHLY' ? '0' : qrData.checkoutInfo.extraFee.toLocaleString() }} VNĐ
+                <span>{{ qrData.checkoutInfo.extraFee > 0 ? (qrData.type === 'MONTHLY' ? '⚠️ Vé tháng hết hạn - Phí phát sinh:' : 'Cần thu thêm:') : 'Vé tháng không thu phí:' }}</span>
+                <strong :class="qrData.checkoutInfo.extraFee > 0 ? 'text-rose-600' : 'text-indigo-600'">
+                  {{ qrData.checkoutInfo.extraFee.toLocaleString() }} VNĐ
                 </strong>
               </div>
               <p class="text-xs text-muted text-center italic mt-2" v-if="qrData.type === 'WALK_IN'">Nhân viên vui lòng thu lại Thẻ cứng trước khi xác nhận.</p>
+              <p class="text-xs text-rose-600 text-center font-semibold mt-2" v-if="qrData.type === 'MONTHLY' && qrData.checkoutInfo.extraFee > 0">⚠️ Vé tháng đã hết hạn. Phí tính từ ngày hết hạn đến hiện tại.</p>
             </div>
 
             <div class="action-buttons-wrapper margin-top-24 border-top padding-top-24">
               <button class="btn-secondary w-full" @click="resetFlow" :disabled="isSubmitting">Hủy (Quét nhầm)</button>
               <button class="btn-primary success-confirm-btn w-full" @click="confirmCheckOut" :disabled="isSubmitting">
-                {{ isSubmitting ? '🔄 Đang gửi lệnh mở cổng...' : (qrData.type === 'MONTHLY' ? 'XÁC NHẬN XE THÁNG RA BÃI' : 'XÁC NHẬN ĐÃ THU TIỀN & MỞ CỔNG') }}
+                {{ isSubmitting ? '🔄 Đang gửi lệnh mở cổng...' : (qrData.checkoutInfo.extraFee > 0 ? 'XÁC NHẬN ĐÃ THU TIỀN & MỞ CỔNG' : (qrData.type === 'MONTHLY' ? 'XÁC NHẬN XE THÁNG RA BÃI' : 'XÁC NHẬN ĐÃ THU TIỀN & MỞ CỔNG')) }}
               </button>
             </div>
           </div>
@@ -283,10 +284,11 @@ const isMatchSuccess = computed(() => {
 
   const normalize = (p: string) => p.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
   const currentPlate = normalize(currentPlateRaw)
-  const expectedPlate = normalize(qrData.value.expectedPlate || '')
+  const expectedPlateRaw = qrData.value.expectedPlate
 
   // Nếu có BSX đăng ký/check-in → bắt buộc phải khớp (cả WEB lẫn WALK_IN)
-  if (expectedPlate) {
+  if (expectedPlateRaw && expectedPlateRaw.trim() !== '') {
+    const expectedPlate = normalize(expectedPlateRaw)
     return currentPlate === expectedPlate
   }
 
@@ -385,6 +387,28 @@ const processFinalVerification = async () => {
       } else if (checkoutData.status === 'INVALID') {
         statusMessage.value = { text: checkoutData.message || '❌ Vé không hợp lệ để checkout', type: 'error' }
         autoResetTimer = setTimeout(() => { resetFlow() }, 3000)
+      } else if (checkoutData.status === 'AUTO_COMPLETE') {
+        // VÉ THÁNG CÒN HẠN - ĐÃ TỰ ĐỘNG CHECKOUT HOÀN TẤT
+        statusMessage.value = { text: '✅ ' + (checkoutData.message || 'Vé tháng đã ra bãi tự động'), type: 'success' }
+        window.toast?.('Vé tháng đã ra bãi thành công!', 'success')
+        playBeep('success')
+        autoResetTimer = setTimeout(() => { resetFlow() }, 2000)
+      } else if (checkoutData.status === 'EXPIRED_MONTHLY') {
+        // VÉ THÁNG ĐÃ HẾT HẠN - CẦN STAFF XÁC NHẬN THU TIỀN
+        statusMessage.value = { text: '⚠️ Vé tháng đã hết hạn! Cần thanh toán phí phát sinh.', type: 'warning' }
+        qrData.value = {
+          ...qrData.value,
+          checkoutInfo: {
+            bookingId: checkoutData.bookingId,
+            plate: checkoutData.plate,
+            timeIn: checkoutData.timeIn,
+            timeOut: checkoutData.timeOut,
+            durationStr: checkoutData.durationStr,
+            totalFee: checkoutData.totalFee,
+            depositPaid: checkoutData.depositPaid,
+            extraFee: checkoutData.extraFee
+          }
+        }
       } else if (qrData.value) {
         statusMessage.value = null
         qrData.value = {
