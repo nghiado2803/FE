@@ -55,8 +55,10 @@ export const useNotificationStore = defineStore('notification', () => {
   const connectRealtime = () => {
     if (!authStore.user?.id || eventSource) return
 
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
-    eventSource = new EventSource(`${baseUrl}/sse/subscribe/${authStore.user.id}`)
+    // Use relative API path so Vite dev server proxy handles CORS in dev.
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '/api/v1'
+    const sseUrl = `${baseUrl}/sse/subscribe/${authStore.user.id}`
+    eventSource = new EventSource(sseUrl)
 
     eventSource.addEventListener('NOTIFICATION', (event) => {
       const newNotif = JSON.parse(event.data) as AppNotification
