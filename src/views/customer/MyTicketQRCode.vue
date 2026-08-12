@@ -48,7 +48,11 @@
         </div>
         <div class="paying-row">
           <span>Biển số</span>
-          <strong class="plate-badge-sm">{{ ticketData.plate }}</strong>
+          <strong>{{ ticketData.plate }}</strong>
+        </div>
+        <div class="paying-row">
+          <span>Loại vé</span>
+          <strong>Vé thường</strong>
         </div>
         <div class="paying-row">
           <span>Tiền cọc</span>
@@ -78,7 +82,9 @@
       </svg>
       <h3>Không có vé nào</h3>
       <p>Bạn chưa có vé đặt chỗ nào đang hoạt động.</p>
-      <button class="btn-go-home" @click="router.push('/customer/home')">Đặt chỗ ngay</button>
+      <div class="no-ticket-actions">
+        <button class="btn-go-home" @click="router.push('/customer/home')">Đặt chỗ ngay</button>
+      </div>
     </div>
 
     <!-- Trạng thái: Đang đến bãi (PENDING) -->
@@ -97,7 +103,7 @@
 
       <div class="countdown-bar" :class="{ 'warning-mode': isGracePeriod }">
         <span class="countdown-label">{{ isGracePeriod ? 'Thời gian gia hạn còn' : 'Giữ chỗ còn lại' }}</span>
-        <strong class="countdown-timer">{{ countdownString }}</strong>
+        <strong class="countdown-timer">{{ timeDisplayText }}</strong>
       </div>
 
       <div class="qr-center-zone">
@@ -346,7 +352,9 @@ import apiClient from '@/services/api'
 import { useTicketStore } from '@/stores/ticketStore'
 import { useAuthStore } from '@/stores/authStore'
 import { CustomerService, type VehicleResponse } from '@/services/customer.service'
+import { formatDateVi } from '@/utils/date'
 import { useNotificationStore } from '@/stores/notificationStore'
+import type { ActiveTicket } from '@/stores/ticketStore'
 import RatingModal from '@/components/customer/RatingModal.vue'
 
 interface MomoStatusResponse {
@@ -526,10 +534,12 @@ const toggleStatusDetail = async () => {
   }
 }
 
+const timeDisplayText = computed(() => countdownString.value)
 const countdownString = ref('30:00')
+
 let countdownInterval: ReturnType<typeof setInterval> | null = null
 
-const checkPaymentStatus = () => {
+const initPendingPolling = () => {
   const pending = localStorage.getItem('pending_payment')
   if (!pending) return
 
@@ -580,11 +590,15 @@ const checkPaymentStatus = () => {
   }, 2000)
 }
 
+const checkPaymentStatus = () => {
+  initPendingPolling()
+}
+
 const loadTicketData = async () => {
   try {
     isLoading.value = true
 
-    // Luôn ưu tiên lấy dữ liệu mới nhất từ Backend
+    // Load current active ticket
     const currentTicket = await apiClient.get('/customer/ticket/current') as {
       status: TicketStatus; ticketCode: string; lotName: string; plate: string
       depositPaid: number; checkInTime?: string; lotLat?: number; lotLng?: number
@@ -622,7 +636,7 @@ const loadTicketData = async () => {
         parkingFee: currentTicket.parkingFee || 0,
         extraFee: currentTicket.extraFee || 0,
         totalPaid: currentTicket.totalPaid || 0,
-        bookingId: currentTicket.bookingId || null
+        bookingId: currentTicket.bookingId || null,
       }
       ticketStatus.value = currentTicket.status
 
@@ -676,7 +690,7 @@ const loadTicketData = async () => {
   } catch (error) {
     console.error('Lỗi tải dữ liệu vé:', error)
     // Nếu lỗi API, dùng dữ liệu cũ trong store làm dự phòng
-    const stored = ticketStore.activeTicket
+    const stored = ticketStore.activeTicket as ActiveTicket | null
     if (stored) {
       ticketData.value = {
         ticketCode: stored.ticketCode,
@@ -693,10 +707,12 @@ const loadTicketData = async () => {
         parkingFee: 0,
         extraFee: 0,
         totalPaid: 0,
-        bookingId: null
+        bookingId: null,
       }
       ticketStatus.value = (stored.status as TicketStatus)
-      if (stored.status === 'PENDING' && stored.holdExpireAt) startCountdown(stored.holdExpireAt, stored.graceMinutes || 15)
+      if (stored.status === 'PENDING' && stored.holdExpireAt) {
+        startCountdown(stored.holdExpireAt, stored.graceMinutes || 15)
+      }
       if (stored.status === 'PARKED' && stored.checkInTime) startLiveTimer(stored.checkInTime)
     } else {
       ticketStatus.value = 'NONE'
@@ -801,9 +817,7 @@ const formatDate = (isoStr: string) => {
   if (match) {
     return `${match[4]}/${match[5]}/${match[6]}`
   }
-  const d = new Date(isoStr.replace(' ', 'T'))
-  if (isNaN(d.getTime())) return '--'
-  return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`
+  return formatDateVi(isoStr)
 }
 
 const openNavigation = () => {
@@ -1258,6 +1272,7 @@ onUnmounted(() => {
   margin-bottom: 16px;
 }
 
+/* Countdown */
 .countdown-label { font-size: 12px; color: #dc2626; font-weight: 600; }
 .countdown-timer { font-size: 18px; font-weight: 800; color: #dc2626; font-family: monospace; }
 
@@ -1585,4 +1600,76 @@ onUnmounted(() => {
 .paid-row span { opacity: 0.8; }
 .paid-row strong { font-weight: 700; }
 .paid-row strong.blue { color: #bfdbfe; }
+
+/* No ticket actions */
+.no-ticket-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+}
+.no-ticket-actions .btn-go-home {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  padding: 14px 24px;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+  font-weight: 800;
+}
+
+.btn-monthly-tickets {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+  padding: 13px 24px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  backdrop-filter: blur(6px);
+}
+.btn-monthly-tickets:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* View all monthly button */
+.btn-view-all-monthly {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1.5px solid #bfdbfe;
+  padding: 12px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  font-size: 13.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-view-all-monthly:hover {
+  background: #2563eb;
+  color: white;
+  border-color: #2563eb;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .no-ticket-actions {
+    width: 100%;
+  }
+}
 </style>
