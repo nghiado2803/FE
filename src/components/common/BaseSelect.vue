@@ -72,7 +72,7 @@ const handleSelectChange = (event: Event) => {
 .modern-select-wrapper {
   display: flex;
   flex-direction: column;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
   text-align: left;
   width: 100%;
   box-sizing: border-box;
@@ -81,7 +81,7 @@ const handleSelectChange = (event: Event) => {
 .modern-select-label {
   margin-bottom: 6px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   color: #334155;
   letter-spacing: 0.2px;
   cursor: pointer;
@@ -94,31 +94,54 @@ const handleSelectChange = (event: Event) => {
   align-items: center;
 }
 
-/* ĐỒNG BỘ ĐỒ HỌA CAO CẤP VÀ BO GÓC TRÒN 10PX KHỚP KHÍT HỆ THỐNG */
+/* === STYLE NATIVE SELECT ĐỒNG BỘ HỆ THỐNG === */
 .modern-core-select {
   width: 100%;
-  padding: 12px 36px 12px 14px; /* Chừa khoảng trống bên phải cho mũi tên */
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
+  padding: 14px 44px 14px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: #0f172a;
-  background-color: #f8fafc;
+  background-color: #ffffff;
   outline: none;
   transition: all 0.2s ease-in-out;
   box-sizing: border-box;
   cursor: pointer;
-  /* Ẩn mũi tên mặc định xấu xí của OS hệ điều hành */
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
+  line-height: 1.4;
 }
 
-/* Bừng sáng xanh dương khi tương tác thả menu */
+/* Màu nền + chữ cho OPTION (trên các browser hỗ trợ) */
+.modern-core-select option {
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modern-core-select option:checked {
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+/* Focus xanh dương chuẩn hệ thống */
 .modern-core-select:focus:not(.select-has-error) {
   border-color: #2563eb;
   background-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12), 0 2px 6px rgba(37, 99, 235, 0.08);
+}
+
+.modern-core-select:hover:not(:disabled):not(.select-has-error) {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
 }
 
 .is-select-disabled {
@@ -128,36 +151,60 @@ const handleSelectChange = (event: Event) => {
   border-color: #e2e8f0;
 }
 
-/* Mũi tên thả xuống tối giản, thanh lịch */
+/* Mũi tên thả xuống tối giản, xanh, vị trí chuẩn */
 .custom-select-arrow-icon {
   position: absolute;
-  right: 14px;
-  font-size: 10px;
-  color: #94a3b8;
-  pointer-events: none; /* Cho phép click xuyên qua mũi tên vào thẳng select */
+  right: 16px;
+  font-size: 9px;
+  color: #64748b;
+  pointer-events: none;
   user-select: none;
+  transition: transform 0.2s ease, color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: #f1f5f9;
 }
 
-/* Cấu hình trạng thái Validate báo lỗi hồng đỏ */
+.custom-select-arrow-icon::after {
+  content: '';
+}
+
+/* Hover select -> đổi màu mũi tên */
+.select-relative-container:hover .custom-select-arrow-icon {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.modern-core-select:focus ~ .custom-select-arrow-icon {
+  color: #1d4ed8;
+  background: #dbeafe;
+  transform: rotate(180deg);
+}
+
+/* Validate báo lỗi hồng đỏ */
 .select-has-error {
   border-color: #f43f5e !important;
   background-color: #fff5f5;
   color: #e11d48;
 }
 .select-has-error:focus {
-  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.15);
+  box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.14);
 }
 
 .modern-error-message-text {
   color: #e11d48;
   font-size: 11.5px;
   font-weight: 700;
-  margin-top: 5px;
+  margin-top: 6px;
   display: block;
   line-height: 1.4;
 }
 
-/* Hoạt ảnh Transition mượt mắt */
+/* Transition */
 .error-slide-enter-active, .error-slide-leave-active {
   transition: all 0.2s ease;
 }
