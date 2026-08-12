@@ -104,6 +104,16 @@
             <span class="avail-total">{{ lotInfo.totalSpots }}</span>
             <span class="avail-label">chỗ trống</span>
           </div>
+          <div class="lot-split-info">
+            <div class="slot-detail">
+              <span class="slot-label">Chỗ vé tháng</span>
+              <strong>{{ lotInfo.monthlyAvailableSpots ?? 0 }}</strong>
+            </div>
+            <div class="slot-detail">
+              <span class="slot-label">Chỗ vé lẻ</span>
+              <strong>{{ lotInfo.normalAvailableSpots ?? 0 }}</strong>
+            </div>
+          </div>
           <div v-if="lotInfo.availableSpots === 0" class="full-badge">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" width="12" height="12">
               <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/>
@@ -243,6 +253,10 @@ type ParkingLotInfo = {
   id: string; name: string; address: string; depositAmount: number
   totalSpots: number; availableSpots: number; pricePerHour: number
   lat: number; lng: number
+  monthlySlots?: number
+  normalSlots?: number
+  monthlyAvailableSpots?: number
+  normalAvailableSpots?: number
 }
 const lotInfo = ref<ParkingLotInfo>({
   id: '1', name: 'Đang tải...', address: '', depositAmount: 0,
@@ -366,7 +380,11 @@ const initializeData = async () => {
       availableSpots: lotData.availableSpots,
       pricePerHour: lotData.pricePerHour,
       lat: latVal,
-      lng: lngVal
+      lng: lngVal,
+      monthlySlots: (lotData as ParkingDetailResponse).monthlySlots ?? 0,
+      normalSlots: (lotData as ParkingDetailResponse).normalSlots ?? Math.max(0, lotData.totalSpots - ((lotData as ParkingDetailResponse).monthlySlots ?? 0)),
+      monthlyAvailableSpots: (lotData as ParkingDetailResponse & { monthlyAvailableSpots?: number }).monthlyAvailableSpots ?? 0,
+      normalAvailableSpots: (lotData as ParkingDetailResponse & { normalAvailableSpots?: number }).normalAvailableSpots ?? 0
     }
     userVehicles.value = vehicles.map(v => ({ brand: v.model, plate: v.plate }))
 
@@ -854,6 +872,34 @@ onUnmounted(() => {
 .fill-progress-bar { flex: 1; height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
 .fill-progress-inner { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
 .bar-green { background: #16a34a; }
+.bar-orange { background: #f59e0b; }
+.bar-red { background: #dc2626; }
+.fill-percent-label { font-size: 11px; font-weight: 700; color: #64748b; white-space: nowrap; }
+
+.lot-split-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.slot-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.slot-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
 .bar-orange { background: #f59e0b; }
 .bar-red { background: #dc2626; }
 .fill-percent-label { font-size: 11px; font-weight: 700; color: #64748b; white-space: nowrap; }
