@@ -263,7 +263,13 @@
               <div v-else class="detail-info-list">
                 <div class="info-group">
                   <label>Loại vé</label>
-                  <span class="status-badge normal-type">Vé thường</span>
+                  <span v-if="selectedSpot.ticketCode?.startsWith('VE')" class="status-badge walkin-type">Vé vãng lai (Thẻ cứng)</span>
+                  <span v-else-if="selectedSpot.ticketCode?.startsWith('SP')" class="status-badge web-type">Vé đặt Web</span>
+                  <span v-else class="status-badge normal-type">Vé thường</span>
+                </div>
+                <div class="info-group">
+                  <label>Mã vé</label>
+                  <div class="ticket-code-display">{{ selectedSpot.ticketCode || '--' }}</div>
                 </div>
                 <div class="info-group">
                   <label>Tình trạng</label>
@@ -304,6 +310,8 @@ type SpotInfo = {
   status: SpotStatus
   plate?: string
   timeIn?: string
+  ticketCode?: string
+  bookingType?: string
 }
 
 type MonthlyTicketInfo = {
@@ -382,7 +390,9 @@ const loadData = async () => {
       id: s.id,
       status: s.status as SpotStatus,
       plate: s.plate || '',
-      timeIn: s.timeIn || ''
+      timeIn: s.timeIn || '',
+      ticketCode: s.ticketCode || '',
+      bookingType: s.bookingType || 'NORMAL'
     }))
     monthlyTickets.value = (data.monthlyTickets || []).map((t: MonthlyTicketInfo) => ({
       id: t.id,
@@ -640,6 +650,21 @@ onUnmounted(() => {
 .status-badge.paying { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
 .status-badge.monthly-type { background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; border: none; padding: 6px 14px; font-size: 12px; }
 .status-badge.normal-type { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; border: none; padding: 6px 14px; font-size: 12px; }
+.status-badge.walkin-type { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; padding: 6px 14px; font-size: 12px; }
+.status-badge.web-type { background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; padding: 6px 14px; font-size: 12px; }
+
+.ticket-code-display {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  color: #1e40af;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 16px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-align: center;
+  letter-spacing: 1.5px;
+  border: 2px solid #bfdbfe;
+}
 
 .status-badge.monthly-status.pending { background: #fef3c7; color: #a16207; border: 1px solid #fde047; }
 .status-badge.monthly-status.parked { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
