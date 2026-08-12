@@ -2,7 +2,7 @@ import apiClient from './api'
 
 // --- Interfaces ---
 export interface ParkingLotDTO {
-  id?: number
+  id: number
   name: string
   address: string
   latitude: number
@@ -20,6 +20,8 @@ export interface ParkingLotDTO {
   graceMinutes?: number
   status: 'ACTIVE' | 'MAINTENANCE'
 }
+
+export type ParkingLotCreatePayload = Omit<ParkingLotDTO, 'id'>
 
 export interface RevenueSummaryResponse {
   totalEarned: number
@@ -49,6 +51,33 @@ export interface TransactionDTO {
   customerName: string
 }
 
+export interface MonthlyTicketOverviewItem {
+  id: number
+  ticketCode: string
+  customerName?: string
+  lotName: string
+  plate: string
+  status: string
+  startDate: string
+  endDate: string
+  pricePaid: number
+  createdAt: string
+}
+
+export interface MonthlyCapacityResponse {
+  currentMonthlyTickets: number
+}
+
+export interface MonthlyTicketStatisticsResponse {
+  summary: {
+    totalTickets: number
+    activeTickets: number
+    totalRevenue: number
+    averagePrice: number
+  }
+  tickets: MonthlyTicketOverviewItem[]
+}
+
 export interface RevenueSummaryPayload {
   summary: RevenueSummaryResponse
   chartData: RevenueChartPoint[]
@@ -62,7 +91,7 @@ export const AdminService = {
     return apiClient.get('/admin/parking-lots')
   },
 
-  createParkingLot(data: ParkingLotDTO): Promise<ParkingLotDTO> {
+  createParkingLot(data: ParkingLotCreatePayload): Promise<ParkingLotDTO> {
     return apiClient.post('/admin/parking-lots', data)
   },
 
@@ -128,5 +157,31 @@ export const AdminService = {
 
   getMapLive(lotId: number): Promise<unknown> {
     return apiClient.get(`/admin/parking-lots/${lotId}/map-live`)
+  },
+
+  searchByPlate(lotId: number, plate: string): Promise<unknown> {
+    return apiClient.get(`/admin/parking-lots/${lotId}/search-by-plate`, { params: { plate } })
+  },
+
+  // === VÉ THÁNG ENDPOINTS ===
+
+  // Lấy tổng quan vé tháng
+  getMonthlyTicketsOverview(): Promise<MonthlyTicketOverviewItem[]> {
+    return apiClient.get('/admin/monthly-tickets/overview')
+  },
+
+  // Lấy capacity vé tháng của bãi xe
+  getMonthlyCapacity(lotId: number): Promise<MonthlyCapacityResponse> {
+    return apiClient.get(`/admin/parking-lots/${lotId}/monthly-capacity`)
+  },
+
+  // Cập nhật cấu hình vé tháng cho bãi xe
+  updateMonthlyConfig(lotId: number, config: { monthlySlots?: number; monthlyPrice?: number }): Promise<unknown> {
+    return apiClient.put(`/admin/parking-lots/${lotId}/monthly-config`, config)
+  },
+
+  // Thống kê vé tháng
+  getMonthlyTicketStatistics(lotName: string = 'ALL', filter: string = 'MONTH'): Promise<MonthlyTicketStatisticsResponse> {
+    return apiClient.get('/admin/monthly-tickets/statistics', { params: { lotName, filter } })
   }
 }
