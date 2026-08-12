@@ -33,12 +33,15 @@
             <div class="text-xs text-muted font-bold uppercase margin-bottom-8">Dữ liệu thẻ vừa quét:</div>
             <div class="flex-between">
               <span class="ticket-code">{{ qrData.code }}</span>
-              <span class="ticket-type" :class="qrData.type === 'WEB' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'">
-                {{ qrData.type === 'WEB' ? 'Khách đặt Web (Có cọc)' : 'Khách vãng lai' }}
+              <span class="ticket-type" :class="qrData.type === 'WEB' ? 'bg-emerald-100 text-emerald-700' : (qrData.type === 'MONTHLY' ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700')">
+                {{ qrData.type === 'WEB' ? 'Khách đặt Web (Có cọc)' : (qrData.type === 'MONTHLY' ? 'Vé tháng' : 'Khách vãng lai') }}
               </span>
             </div>
-            <p v-if="qrData.type === 'WEB' && currentScanMode === 'IN'" class="text-sm margin-top-8">
+            <p v-if="qrData.type !== 'WALK_IN' && currentScanMode === 'IN'" class="text-sm margin-top-8">
               Biển số đăng ký: <b class="text-slate-800">{{ qrData.expectedPlate }}</b>
+            </p>
+            <p v-if="qrData.type === 'MONTHLY'" class="text-sm margin-top-8 text-indigo-700">
+              Hạn sử dụng đến: <b>{{ qrData.validUntil || '---' }}</b>
             </p>
           </div>
           <div class="empty-data-box margin-top-16" v-else>
@@ -135,8 +138,8 @@
 
       <div class="verify-body" v-if="isMatchSuccess">
         <div class="grid-3-cols" v-if="currentScanMode === 'IN'">
-          <div class="info-block"><label>Loại khách</label><p class="font-bold text-slate-800">{{ qrData.type === 'WEB' ? 'Khách đặt Web' : 'Khách vãng lai' }}</p></div>
-          <div class="info-block"><label>Tiền cọc ghi nhận</label><p class="font-bold text-amber-600">{{ qrData.deposit.toLocaleString() }} VNĐ</p></div>
+            <div class="info-block"><label>Loại vé</label><p class="font-bold text-slate-800">{{ qrData.type === 'WEB' ? 'Khách đặt Web' : (qrData.type === 'MONTHLY' ? 'Vé tháng' : 'Khách vãng lai') }}</p></div>
+          <div class="info-block"><label>Tiền cọc ghi nhận</label><p class="font-bold text-amber-600">{{ qrData.type === 'MONTHLY' ? '0' : qrData.deposit.toLocaleString() }} VNĐ</p></div>
           <div class="info-block"><label>Vị trí ô đỗ cấp</label><p class="font-bold text-blue-700">Hệ thống tự phân bổ</p></div>
         </div>
 
@@ -156,8 +159,10 @@
 
             <div class="checkout-summary margin-top-16">
               <div class="final-price-box">
-                <span>Cần thu thêm:</span>
-                <strong class="text-rose-600">{{ qrData.checkoutInfo.extraFee.toLocaleString() }} VNĐ</strong>
+                <span>{{ qrData.type === 'MONTHLY' ? 'Vé tháng không thu phí:' : 'Cần thu thêm:' }}</span>
+                <strong :class="qrData.type === 'MONTHLY' ? 'text-indigo-600' : 'text-rose-600'">
+                  {{ qrData.type === 'MONTHLY' ? '0' : qrData.checkoutInfo.extraFee.toLocaleString() }} VNĐ
+                </strong>
               </div>
               <p class="text-xs text-muted text-center italic mt-2" v-if="qrData.type === 'WALK_IN'">Nhân viên vui lòng thu lại Thẻ cứng trước khi xác nhận.</p>
             </div>
@@ -165,7 +170,7 @@
             <div class="action-buttons-wrapper margin-top-24 border-top padding-top-24">
               <button class="btn-secondary w-full" @click="resetFlow" :disabled="isSubmitting">Hủy (Quét nhầm)</button>
               <button class="btn-primary success-confirm-btn w-full" @click="confirmCheckOut" :disabled="isSubmitting">
-                {{ isSubmitting ? '🔄 Đang gửi lệnh mở cổng...' : 'XÁC NHẬN ĐÃ THU TIỀN & MỞ CỔNG' }}
+                {{ isSubmitting ? '🔄 Đang gửi lệnh mở cổng...' : (qrData.type === 'MONTHLY' ? 'XÁC NHẬN XE THÁNG RA BÃI' : 'XÁC NHẬN ĐÃ THU TIỀN & MỞ CỔNG') }}
               </button>
             </div>
           </div>
@@ -187,7 +192,7 @@ import apiClient from '@/services/api'
 defineOptions({ name: 'ScannerCheckIn' })
 
 type Mode = 'IN' | 'OUT'
-type TicketType = 'WEB' | 'WALK_IN'
+type TicketType = 'WEB' | 'WALK_IN' | 'MONTHLY'
 type QRData = {
   code: string
   type: TicketType
@@ -195,6 +200,7 @@ type QRData = {
   deposit: number
   bookingId?: string | number
   checkoutInfo?: CheckoutResult
+  validUntil?: string
 }
 type AIScanResponse = {
   plate?: string
@@ -464,7 +470,7 @@ const handleQRScanned = async (text: string) => {
   // Stop scanner ngay — không đọc thêm frame nào
   await stopScanner()
 
-  if (!text.startsWith('SP') && !text.startsWith('VE')) {
+  if (!text.startsWith('SP') && !text.startsWith('VE') && !text.startsWith('MT')) {
     statusMessage.value = { text: '❌ Mã QR không thuộc hệ thống SmartPark!', type: 'error' }
     setTimeout(() => { statusMessage.value = null; isProcessingScan = false; resumeScanner() }, 3000)
     return
@@ -472,37 +478,39 @@ const handleQRScanned = async (text: string) => {
 
   try {
     const lotId = authStore.user?.parkingLotId || 1
-    const result = await apiClient.post('/staff/verify-qr', { qrCode: text, lotId: String(lotId) }) as {
-      status: string; mode?: string; bookingId?: string | number
+      const result = await apiClient.post('/staff/verify-qr', { qrCode: text, lotId: String(lotId) }) as {
+      status?: string; mode?: string; bookingId?: string | number
       plate?: string; depositPaid?: number
-      totalFee?: number; durationStr?: string; extraFee?: number; message?: string
+      totalFee?: number; durationStr?: string; extraFee?: number; message?: string; validUntil?: string
     }
 
-    if (result.status === 'INVALID' || result.status === 'EXPIRED' || result.status === 'NOT_PAID' || result.status === 'WRONG_LOT') {
+    if (result.status && ['INVALID', 'EXPIRED', 'NOT_PAID', 'WRONG_LOT', 'PLATE_MISMATCH'].includes(result.status)) {
       statusMessage.value = { text: result.message || 'Mã vé không hợp lệ hoặc chưa thanh toán cọc!', type: 'error' }
       setTimeout(() => { statusMessage.value = null; isProcessingScan = false; resumeScanner() }, 4000)
       return
     }
 
+    const ticketType: TicketType = text.startsWith('SP') ? 'WEB' : (text.startsWith('MT') ? 'MONTHLY' : 'WALK_IN')
     if (result.mode === 'IN') {
       currentScanMode.value = 'IN'
       qrData.value = {
         code: text,
-        type: text.startsWith('SP') ? 'WEB' : 'WALK_IN',
+        type: ticketType,
         deposit: result.depositPaid ?? 0,
         expectedPlate: result.plate || '',
-        bookingId: result.bookingId
+        bookingId: result.bookingId,
+        validUntil: result.validUntil
       }
       await triggerBackendAICamera()
     } else if (result.mode === 'OUT') {
       currentScanMode.value = 'OUT'
       qrData.value = {
         code: text,
-        type: text.startsWith('SP') ? 'WEB' : 'WALK_IN',
+        type: ticketType,
         deposit: result.depositPaid || 0,
         expectedPlate: result.plate || '',
-        bookingId: result.bookingId
-        // checkoutInfo sẽ được điền sau khi AI xác nhận biển số
+        bookingId: result.bookingId,
+        validUntil: result.validUntil
       }
       await triggerBackendAICamera()
     }
@@ -589,17 +597,19 @@ const triggerBackendAICamera = async () => {
 
     const isWalkIn = qrData.value?.type === 'WALK_IN'
     const isWeb = qrData.value?.type === 'WEB'
+    const isMonthly = qrData.value?.type === 'MONTHLY'
     const isOut = currentScanMode.value === 'OUT'
 
+    const normalize2 = (p: string) => (p || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+    const aiPlate = normalize2(aiResult.value?.plate || '')
+    const registeredPlate = normalize2(qrData.value?.expectedPlate || '')
+    const hasRegisteredPlate = !!registeredPlate
+
     if (isOut) {
-      // CHECKOUT (WEB + WALK_IN): AI khớp → thanh toán luôn, không khớp → nhập tay
-      const normalize2 = (p: string) => (p || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-      const aiPlate = normalize2(aiResult.value?.plate || '')
-      const registeredPlate = normalize2(qrData.value?.expectedPlate || '')
       const outMatched = aiPlate.length >= 7 && (
         qrData.value?.type === 'WALK_IN'
-          ? (registeredPlate ? aiPlate === registeredPlate : true)  // WALK_IN: khớp với BSX check-in nếu có
-          : aiPlate === registeredPlate                              // WEB: khớp với BSX đăng ký
+          ? (hasRegisteredPlate ? aiPlate === registeredPlate : true)
+          : aiPlate === registeredPlate
       )
       if (outMatched) {
         needsManualConfirm.value = false
@@ -611,14 +621,11 @@ const triggerBackendAICamera = async () => {
         statusMessage.value = { text: '⚠️ Biển số không khớp khi ra! Vui lòng kiểm tra hoặc nhập tay.', type: 'warning' }
         setTimeout(() => { if (statusMessage.value?.type === 'warning') statusMessage.value = null }, 5000)
       }
-    } else if (isWeb) {
-      // CHECK-IN KHÁCH WEB
+    } else if (isWeb || isMonthly) {
       if (currentPlate === expectedPlate) {
-        // Khớp → tự động
         needsManualConfirm.value = false
         processFinalVerification()
       } else {
-        // Không khớp → chờ nhân viên nhập tay
         needsManualConfirm.value = true
         statusMessage.value = null
         playBeep('warning')
@@ -626,7 +633,6 @@ const triggerBackendAICamera = async () => {
         setTimeout(() => { if (statusMessage.value?.type === 'warning') statusMessage.value = null }, 5000)
       }
     } else if (isWalkIn) {
-      // CHECK-IN KHÁCH VÃNG LAI → AI đọc BSX xong, chờ nhân viên xác nhận
       needsManualConfirm.value = true
       statusMessage.value = null
       playBeep('warning')
