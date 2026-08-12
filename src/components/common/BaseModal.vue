@@ -35,24 +35,23 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
-// SỬA LỖI LOGIC 1: KHÓA CHẶT CUỘN NỀN (SCROLL LEAKING) KHI BẬT MODAL
+// LẮNG NGHE LỆNH PHÍM ESCAPE ĐỂ ĐÓNG POPUP NHANH (khai báo trước watch để tránh temporal dead zone khi immediate:true)
+const handleEscKeyClose = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') {
+    emit('close')
+  }
+}
+
+// KHÓA CHẶT CUỘN NỀN (SCROLL LEAKING) KHI BẬT MODAL
 watch(() => props.isOpen, (newStatus) => {
   if (newStatus) {
     document.body.style.overflow = 'hidden'
-    // Lắng nghe phím bấm Escape từ bàn phím toàn cục
     window.addEventListener('keydown', handleEscKeyClose)
   } else {
     document.body.style.overflow = ''
     window.removeEventListener('keydown', handleEscKeyClose)
   }
 }, { immediate: true })
-
-// SỬA LỖI LOGIC 2: LẮNG NGHE LỆNH PHÍM ESCAPE ĐỂ ĐÓNG POPUP NHANH
-const handleEscKeyClose = (event: KeyboardEvent) => {
-  if (event.key === 'Escape') {
-    emit('close')
-  }
-}
 
 // Đảm bảo dọn dẹp sạch sẽ bộ nhớ nếu trang bị hủy bất ngờ (Chống Memory Leak)
 onUnmounted(() => {
