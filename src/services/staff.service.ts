@@ -20,6 +20,16 @@ export interface CheckoutResult {
   extraFee: number
 }
 
+export interface SearchResult {
+  id: string
+  plate: string
+  status: 'PENDING' | 'PARKED' | 'CHECKOUT' | string
+  customerName?: string
+  phone?: string
+  timeIn?: string
+  ticketCode?: string
+}
+
 // --- API Calls ---
 export const StaffService = {
   // Kiểm tra mã QR lúc vào bãi
@@ -50,5 +60,10 @@ export const StaffService = {
   // Lấy lịch trực cá nhân
   getMySchedule(staffId: number, date: string): Promise<unknown[]> {
     return apiClient.get('/staff/my-schedule', { params: { staffId, date } })
+  },
+
+  // Tìm kiếm theo biển số xe
+  searchByPlate(lotId: number, plate: string): Promise<{ results: SearchResult[] }> {
+    return apiClient.get(`/staff/search-by-plate/${lotId}`, { params: { plate } })
   }
 }
