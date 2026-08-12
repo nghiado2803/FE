@@ -22,13 +22,15 @@
         <div class="kpi-info">
           <p class="kpi-label">Tổng quy mô</p>
           <h3 class="kpi-value text-blue">{{ kpi.total }} <span class="unit">ô đỗ</span></h3>
+          <p class="kpi-sub">{{ kpi.normalSlots }} ô thường · {{ kpi.monthlySlots }} ô vé tháng</p>
         </div>
       </div>
       <div class="kpi-card border-emerald">
         <div class="kpi-icon bg-emerald-light"><i class="bi bi-check-circle"></i></div>
         <div class="kpi-info">
-          <p class="kpi-label">Sẵn sàng</p>
-          <h3 class="kpi-value text-emerald">{{ kpi.available }} <span class="unit">ô trống</span></h3>
+          <p class="kpi-label">Ô thường trống</p>
+          <h3 class="kpi-value text-emerald">{{ kpi.available }} <span class="unit">ô</span></h3>
+          <p class="kpi-sub">{{ kpi.monthlyAvailable }} ô vé tháng còn trống</p>
         </div>
       </div>
       <div class="kpi-card border-amber">
@@ -36,6 +38,7 @@
         <div class="kpi-info">
           <p class="kpi-label">Đang chờ khách</p>
           <h3 class="kpi-value text-amber">{{ kpi.pending }} <span class="unit">xe đặt</span></h3>
+          <p class="kpi-sub">{{ kpi.monthlyPending }} vé tháng chờ vào</p>
         </div>
       </div>
       <div class="kpi-card border-rose">
@@ -43,6 +46,7 @@
         <div class="kpi-info">
           <p class="kpi-label">Đang lấp đầy</p>
           <h3 class="kpi-value text-rose">{{ kpi.occupied }} <span class="unit">xe đỗ</span></h3>
+          <p class="kpi-sub">{{ kpi.monthlyParked }} vé tháng đang đỗ</p>
         </div>
       </div>
     </div>
@@ -50,15 +54,7 @@
     <!-- Map Visualization -->
     <div class="main-visual-card margin-bottom-24">
       <div class="card-header-premium">
-        <div class="header-left">
-          <h3 class="card-title-modern">🗺️ Sơ đồ mặt bằng trực tuyến</h3>
-          <div class="occupancy-mini-stats">
-            <div class="mini-bar">
-              <div class="fill" :style="{ width: occupancyRate + '%' }"></div>
-            </div>
-            <span>{{ occupancyRate }}% lấp đầy</span>
-          </div>
-        </div>
+
         <div class="legend-modern">
           <div class="legend-item"><span class="swatch available"></span> Trống</div>
           <div class="legend-item"><span class="swatch pending"></span> Chờ</div>
@@ -99,7 +95,7 @@
       <!-- Occupied Table -->
       <div class="data-table-card">
         <div class="card-header-simple">
-          <h3>🚗 Danh sách xe đang đỗ</h3>
+          <h3>🚗 Danh sách xe đang đỗ (Vé thường)</h3>
           <span class="badge rose">{{ occupiedSpots.length }}</span>
         </div>
         <div class="table-container custom-scrollbar">
@@ -108,17 +104,25 @@
               <tr>
                 <th>Vị trí</th>
                 <th>Biển số</th>
+                <th>Loại vé</th>
                 <th>Thời điểm vào</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="spot in occupiedSpots" :key="spot.id" @click="showSpotDetail(spot)">
+              <tr v-for="spot in occupiedSpots" :key="spot.id">
                 <td class="font-bold">{{ spot.id }}</td>
                 <td><span class="plate-label">{{ spot.plate }}</span></td>
+                <td><span class="ticket-type-badge normal">Vé thường</span></td>
                 <td class="text-muted">{{ spot.timeIn }}</td>
+                <td>
+                  <button class="action-btn view-btn" @click="showSpotDetail(spot)" title="Xem chi tiết">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
               </tr>
               <tr v-if="occupiedSpots.length === 0">
-                <td colspan="3" class="empty-table">Chưa có xe nào đang đỗ</td>
+                <td colspan="5" class="empty-table">Chưa có xe nào đang đỗ</td>
               </tr>
             </tbody>
           </table>
@@ -128,7 +132,7 @@
       <!-- Pending Table -->
       <div class="data-table-card">
         <div class="card-header-simple">
-          <h3>⏳ Xe đang chờ (Đã đặt)</h3>
+          <h3>⏳ Xe đang chờ (Đã đặt - Vé thường)</h3>
           <span class="badge amber">{{ pendingSpots.length }}</span>
         </div>
         <div class="table-container custom-scrollbar">
@@ -137,21 +141,170 @@
               <tr>
                 <th>Vị trí</th>
                 <th>Biển số</th>
+                <th>Loại vé</th>
                 <th>Thời điểm đặt</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="spot in pendingSpots" :key="spot.id" @click="showSpotDetail(spot)">
+              <tr v-for="spot in pendingSpots" :key="spot.id">
                 <td class="font-bold">{{ spot.id }}</td>
                 <td><span class="plate-label">{{ spot.plate }}</span></td>
+                <td><span class="ticket-type-badge normal">Vé thường</span></td>
                 <td class="text-muted">{{ spot.timeIn }}</td>
+                <td>
+                  <button class="action-btn view-btn" @click="showSpotDetail(spot)" title="Xem chi tiết">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                </td>
               </tr>
               <tr v-if="pendingSpots.length === 0">
-                <td colspan="3" class="empty-table">Không có xe nào đang chờ</td>
+                <td colspan="5" class="empty-table">Không có xe nào đang chờ</td>
               </tr>
             </tbody>
           </table>
         </div>
+      </div>
+
+    </div>
+
+    <!-- KPI VÉ THÁNG -->
+    <div class="monthly-kpi-section margin-bottom-24">
+      <h3 class="section-title">🎫 Thông tin vé tháng</h3>
+      <div class="monthly-kpi-grid">
+        <div class="monthly-kpi-card">
+          <div class="monthly-kpi-icon blue">🏢</div>
+          <div class="monthly-kpi-info">
+            <p class="monthly-kpi-label">Sức chứa</p>
+            <h3 class="monthly-kpi-value">{{ mapData?.monthlySlots || 0 }}</h3>
+          </div>
+        </div>
+        <div class="monthly-kpi-card">
+          <div class="monthly-kpi-icon purple">📋</div>
+          <div class="monthly-kpi-info">
+            <p class="monthly-kpi-label">Tổng vé tháng</p>
+            <h3 class="monthly-kpi-value">{{ monthlyTickets.length }}</h3>
+          </div>
+        </div>
+        <div class="monthly-kpi-card">
+          <div class="monthly-kpi-icon amber">⏳</div>
+          <div class="monthly-kpi-info">
+            <p class="monthly-kpi-label">Chưa vào bãi</p>
+            <h3 class="monthly-kpi-value">{{ kpi.monthlyPending }}</h3>
+          </div>
+        </div>
+        <div class="monthly-kpi-card">
+          <div class="monthly-kpi-icon green">🚗</div>
+          <div class="monthly-kpi-info">
+            <p class="monthly-kpi-label">Đang trong bãi</p>
+            <h3 class="monthly-kpi-value">{{ kpi.monthlyParked }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Tickets Grid - New -->
+    <div class="main-visual-card margin-bottom-24">
+      <div class="card-header-premium">
+        <div class="header-left">
+          <h3 class="card-title-modern">🎫 Sơ đồ vé tháng</h3>
+        </div>
+        <div class="legend-modern">
+          <div class="legend-item"><span class="swatch monthly-pending"></span> Chưa vào</div>
+          <div class="legend-item"><span class="swatch monthly-parked"></span> Đang đỗ</div>
+          <div class="legend-item"><span class="swatch monthly-available"></span> Trống</div>
+        </div>
+      </div>
+
+      <div class="parking-layout-scroller custom-scrollbar">
+        <div class="monthly-grid-modern">
+          <!-- Hiển thị tất cả các slot vé tháng -->
+          <template v-for="index in (mapData?.monthlySlots || 0)" :key="'monthly-slot-' + index">
+            <div
+              v-if="monthlyTicketsArray[index - 1]"
+              class="monthly-spot-premium"
+              :class="monthlyTicketsArray[index - 1].status.toLowerCase()"
+              @click="showMonthlyTicketDetail(monthlyTicketsArray[index - 1])"
+            >
+              <div class="monthly-spot-plate">{{ monthlyTicketsArray[index - 1].plate }}</div>
+              <div class="monthly-spot-icon">
+                <i v-if="monthlyTicketsArray[index - 1].status === 'PARKED'" class="bi bi-car-front-fill"></i>
+                <i v-else class="bi bi-hourglass-split"></i>
+              </div>
+              <div class="monthly-spot-code">{{ monthlyTicketsArray[index - 1].ticketCode }}</div>
+            </div>
+            <div
+              v-else
+              class="monthly-spot-premium available"
+              title="Chưa có vé tháng"
+            >
+              <div class="monthly-spot-empty">
+                <i class="bi bi-p-square" style="font-size: 32px; opacity: 0.3;"></i>
+                <span>Trống</span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly Tickets Table -->
+    <div class="data-table-card full-width margin-bottom-24">
+      <div class="card-header-simple">
+        <h3>🎫 Danh sách vé tháng</h3>
+        <span class="badge purple">{{ monthlyTickets.length }}</span>
+      </div>
+      <div class="table-container custom-scrollbar">
+        <table class="modern-table">
+          <thead>
+            <tr>
+              <th>Mã vé</th>
+              <th>Khách hàng</th>
+              <th>Bãi xe</th>
+              <th>Biển số</th>
+              <th>Thời hạn</th>
+              <th>Trạng thái</th>
+              <th>Giá trị</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="ticket in monthlyTickets" :key="ticket.id">
+              <td><span class="ticket-code-small">#{{ ticket.ticketCode }}</span></td>
+              <td>
+                <div class="customer-cell">
+                  <div class="customer-avatar">{{ (ticket.customerName || 'N')[0].toUpperCase() }}</div>
+                  <span class="customer-name">{{ ticket.customerName || 'Chưa có tên' }}</span>
+                </div>
+              </td>
+              <td>{{ mapData?.lotName || '—' }}</td>
+              <td><span class="plate-label">{{ ticket.plate }}</span></td>
+              <td class="text-muted">
+                <div class="date-range">
+                  <div>Từ: {{ ticket.startDate }}</div>
+                  <div>Đến: {{ ticket.endDate }}</div>
+                </div>
+              </td>
+              <td>
+                <span
+                  class="status-badge"
+                  :class="ticket.status === 'PARKED' ? 'badge-green' : 'badge-amber'"
+                >
+                  {{ ticket.status === 'PARKED' ? 'Đang đỗ' : 'Chưa vào' }}
+                </span>
+              </td>
+              <td class="price-cell">50.000 đ</td>
+              <td>
+                <button class="action-btn view-btn" @click="showMonthlyTicketDetail(ticket)" title="Xem chi tiết">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </td>
+            </tr>
+            <tr v-if="monthlyTickets.length === 0">
+              <td colspan="8" class="empty-table">Chưa có vé tháng nào</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -176,7 +329,39 @@
                 <div class="check-icon-bg"><i class="bi bi-check-lg"></i></div>
                 <p>Vị trí này hiện đang trống và sẵn sàng đón khách mới</p>
               </div>
+              <div v-else-if="selectedSpot.status === 'monthly'" class="detail-grid">
+                <div class="detail-item">
+                  <label>Loại vé</label>
+                  <span class="status-pill monthly-badge">Vé tháng</span>
+                </div>
+                <div class="detail-item">
+                  <label>Mã vé tháng</label>
+                  <span class="val-text ticket-code">#{{ selectedSpot.ticketCode }}</span>
+                </div>
+                <div class="detail-item">
+                  <label>Biển số xe</label>
+                  <span class="val-text">{{ selectedSpot.plate }}</span>
+                </div>
+                <div class="detail-item">
+                  <label>Trạng thái</label>
+                  <span class="monthly-status-badge" :class="(selectedSpot as any).monthlyStatus?.toLowerCase()">
+                    {{ getMonthlyStatusText((selectedSpot as any).monthlyStatus || 'PENDING') }}
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <label>Ngày bắt đầu</label>
+                  <span class="val-text">{{ (selectedSpot as any).startDate }}</span>
+                </div>
+                <div class="detail-item">
+                  <label>Ngày kết thúc</label>
+                  <span class="val-text">{{ (selectedSpot as any).endDate }}</span>
+                </div>
+              </div>
               <div v-else class="detail-grid">
+                <div class="detail-item">
+                  <label>Loại vé</label>
+                  <span class="status-pill normal-badge">Vé thường</span>
+                </div>
                 <div class="detail-item">
                   <label>Trạng thái</label>
                   <span class="status-pill" :class="selectedSpot.status">
@@ -186,6 +371,10 @@
                 <div class="detail-item">
                   <label>Chủ xe</label>
                   <span class="val-text">{{ selectedSpot.customerName || 'Khách vãng lai' }}</span>
+                </div>
+                <div class="detail-item">
+                  <label>Biển số xe</label>
+                  <span class="val-text">{{ selectedSpot.plate }}</span>
                 </div>
                 <div class="detail-item">
                   <label>Thời điểm vào</label>
@@ -213,8 +402,24 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { AdminService } from '@/services/admin.service'
 
 interface ParkingLot { id: number; name: string; [key: string]: unknown }
-interface ParkingSpot { id: string; status: string; plate?: string; timeIn?: string; customerName?: string; ticketCode?: string; [key: string]: unknown }
-interface MapData { totalSpots: number; availableCount: number; spots: ParkingSpot[]; [key: string]: unknown }
+interface ParkingSpot {
+  id: string | number;
+  status: string;
+  plate?: string;
+  timeIn?: string;
+  customerName?: string;
+  ticketCode?: string;
+  startDate?: string;
+  endDate?: string;
+  [key: string]: unknown
+}
+interface MapData {
+  totalSpots: number;
+  availableCount: number;
+  spots: ParkingSpot[];
+  lotName?: string;
+  [key: string]: unknown
+}
 
 const parkingLots = ref<ParkingLot[]>([])
 const selectedLotId = ref<number | null>(null)
@@ -231,9 +436,14 @@ const occupancyRate = computed(() => {
 
 const kpi = computed(() => ({
   total: mapData.value?.totalSpots || 0,
-  available: mapData.value?.availableCount || 0,
-  pending: mapData.value?.spots.filter(s => s.status === 'pending').length || 0,
-  occupied: mapData.value?.spots.filter(s => s.status === 'occupied').length || 0
+  normalSlots: mapData.value?.normalSlots || 0,
+  monthlySlots: mapData.value?.monthlySlots || 0,
+  available: mapData.value?.normalAvailableCount || 0,
+  monthlyAvailable: mapData.value?.monthlyAvailableCount || 0,
+  pending: mapData.value?.normalPendingCount || 0,
+  monthlyPending: mapData.value?.monthlyPendingCount || 0,
+  occupied: mapData.value?.normalParkedCount || 0,
+  monthlyParked: mapData.value?.monthlyParkedCount || 0
 }))
 
 const occupiedSpots = computed(() =>
@@ -243,6 +453,18 @@ const occupiedSpots = computed(() =>
 const pendingSpots = computed(() =>
   mapData.value?.spots.filter(s => s.status === 'pending') || []
 )
+
+const monthlyTickets = computed(() =>
+  mapData.value?.monthlyTickets || []
+)
+
+const monthlyTicketsArray = computed(() => {
+  const arr: (ParkingSpot | null)[] = []
+  monthlyTickets.value.forEach(ticket => {
+    arr.push(ticket)
+  })
+  return arr
+})
 
 const fetchLots = async () => {
   try {
@@ -269,6 +491,20 @@ const fetchMapData = async () => {
 
 const showSpotDetail = (spot: ParkingSpot) => {
   selectedSpot.value = spot
+}
+
+const showMonthlyTicketDetail = (ticket: ParkingSpot) => {
+  selectedSpot.value = {
+    ...ticket,
+    id: ticket.ticketCode,
+    status: 'monthly',
+    monthlyStatus: ticket.status
+  }
+}
+
+const getMonthlyStatusText = (status: string) => {
+  // Chỉ có 2 trạng thái: Đang đỗ hoặc Chưa vào
+  return status === 'PARKED' ? 'Đang đỗ' : 'Chưa vào'
 }
 
 onMounted(async () => {
@@ -337,6 +573,9 @@ onUnmounted(() => {
 .swatch.available { background: #f0fdf4; border: 2px dashed #86efac; }
 .swatch.pending { background: #fffbeb; border: 2px solid #fcd34d; }
 .swatch.occupied { background: #fef2f2; border: 2px solid #fca5a5; }
+.swatch.monthly-pending { background: #fde68a; border: 2px solid #f59e0b; }
+.swatch.monthly-parked { background: #a7f3d0; border: 2px solid #10b981; }
+.swatch.monthly-available { background: #f8fafc; border: 2px dashed #cbd5e1; }
 
 /* Grid Modern */
 .parking-layout-scroller { max-height: 600px; overflow-y: auto; padding: 30px; background: #f8fafc; }
@@ -361,6 +600,7 @@ onUnmounted(() => {
 
 /* Tables Layout */
 .tables-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.data-table-card.full-width { grid-column: 1 / -1; }
 @media (max-width: 1024px) {
   .tables-layout { grid-template-columns: 1fr; }
 }
@@ -370,14 +610,231 @@ onUnmounted(() => {
 .badge { padding: 4px 12px; border-radius: 100px; font-size: 12px; font-weight: 800; color: white; }
 .badge.rose { background: #ef4444; }
 .badge.amber { background: #f59e0b; }
+.badge.purple { background: #9333ea; }
+
+.kpi-sub { font-size: 11px; color: #64748b; margin-top: 4px; font-weight: 600; }
+
+.ticket-type-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.ticket-type-badge.normal { background: #dbeafe; color: #1e40af; }
+.ticket-type-badge.monthly { background: #f3e8ff; color: #7c3aed; }
+
+.monthly-status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.monthly-status-badge.pending { background: #fef3c7; color: #d97706; }
+.monthly-status-badge.parked { background: #d1fae5; color: #059669; }
+
+.status-pill.monthly-badge { background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; }
+.status-pill.normal-badge { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; }
+
+/* Monthly Tickets Grid */
+.monthly-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+  padding: 24px;
+  background: linear-gradient(135deg, #faf5ff 0%, #f9f5ff 100%);
+}
+
+.monthly-spot-premium {
+  background: white;
+  border: 3px solid #e9d5ff;
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 120px;
+  justify-content: center;
+}
+
+.monthly-spot-premium:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(147, 51, 234, 0.2);
+  border-color: #a855f7;
+}
+
+.monthly-spot-premium.pending {
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-width: 3px;
+}
+
+.monthly-spot-premium.parked {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-width: 3px;
+}
+
+.monthly-spot-premium.available {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  border-style: dashed;
+}
+
+.monthly-spot-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.monthly-spot-plate {
+  background: #0f172a;
+  color: #facc15;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.monthly-spot-icon {
+  font-size: 24px;
+  color: #059669;
+}
+
+.monthly-spot-premium.pending .monthly-spot-icon {
+  color: #d97706;
+}
+
+.monthly-spot-code {
+  font-size: 10px;
+  font-weight: 700;
+  color: #64748b;
+  font-family: monospace;
+}
+
+/* Monthly KPI Section */
+.monthly-kpi-section { background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border-radius: 16px; padding: 20px; border: 1px solid #e9d5ff; margin-bottom: 24px; }
+.section-title { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; }
+.monthly-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+@media (max-width: 1024px) { .monthly-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .monthly-kpi-grid { grid-template-columns: 1fr; } }
+.monthly-kpi-card { background: white; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+.monthly-kpi-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.monthly-kpi-icon.blue { background: #eff6ff; color: #2563eb; }
+.monthly-kpi-icon.purple { background: #f3e8ff; color: #7c3aed; }
+.monthly-kpi-icon.amber { background: #fffbeb; color: #f59e0b; }
+.monthly-kpi-icon.green { background: #ecfdf5; color: #10b981; }
+.monthly-kpi-label { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 2px 0; }
+.monthly-kpi-value { font-size: 24px; font-weight: 800; margin: 0; color: #0f172a; }
 
 .table-container { max-height: 400px; overflow-y: auto; }
 .modern-table { width: 100%; border-collapse: collapse; }
 .modern-table th { background: #f8fafc; padding: 12px 20px; text-align: left; font-size: 11px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; }
-.modern-table td { padding: 14px 20px; border-bottom: 1px solid #f8fafc; font-size: 14px; cursor: pointer; }
+.modern-table td { padding: 14px 20px; border-bottom: 1px solid #f8fafc; font-size: 14px; }
 .modern-table tr:hover { background: #f8faff; }
 .plate-label { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 4px 10px; border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 13px; }
 .empty-table { text-align: center; padding: 40px; color: #94a3b8; font-style: italic; }
+
+/* Action Buttons */
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+.view-btn {
+  background: #eff6ff;
+  color: #2563eb;
+}
+.view-btn:hover {
+  background: #2563eb;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Customer Cell */
+.customer-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.customer-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a855f7, #7c3aed);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+}
+.customer-name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-block;
+}
+.badge-green {
+  background: #d1fae5;
+  color: #059669;
+}
+.badge-amber {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+/* Date Range */
+.date-range {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+/* Ticket Code Small */
+.ticket-code-small {
+  font-family: monospace;
+  font-weight: 700;
+  color: #7c3aed;
+  font-size: 13px;
+}
+
+/* Price Cell */
+.price-cell {
+  font-weight: 800;
+  color: #059669;
+  font-size: 15px;
+}
 
 /* Modal Premium */
 .modal-overlay-premium { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
@@ -387,6 +844,7 @@ onUnmounted(() => {
 .modal-header-premium.available { background: linear-gradient(135deg, #10b981, #059669); }
 .modal-header-premium.pending { background: linear-gradient(135deg, #f59e0b, #d97706); }
 .modal-header-premium.occupied { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.modal-header-premium.monthly { background: linear-gradient(135deg, #a855f7, #7c3aed); }
 
 .header-top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .pos-tag { background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 800; text-transform: uppercase; }
