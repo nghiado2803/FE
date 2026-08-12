@@ -18,7 +18,7 @@
       <div class="kpi-card border-blue">
         <div class="kpi-icon bg-blue-light">🏢</div>
         <div class="kpi-info">
-          <p class="kpi-label">Sức chứa</p>
+          <p class="kpi-label">Sức chứa (Vé thường)</p>
           <h3 class="kpi-value text-blue">{{ kpi.total }} <span class="unit">ô</span></h3>
         </div>
       </div>
@@ -88,7 +88,7 @@
       <!-- Xe đang trong bãi -->
       <div class="main-data-card">
         <div class="card-header flex-between">
-          <h3 class="card-title">🚗 Xe đang trong bãi</h3>
+          <h3 class="card-title">🚗 Xe đang trong bãi (Vé thường)</h3>
           <span class="badge-count badge-rose">{{ occupiedSpots.length }} xe</span>
         </div>
         <div class="table-scroll custom-scrollbar">
@@ -116,7 +116,7 @@
       <!-- Xe đang giữ cọc -->
       <div class="main-data-card">
         <div class="card-header flex-between">
-          <h3 class="card-title">⏳ Xe đang giữ cọc</h3>
+          <h3 class="card-title">⏳ Xe đang giữ cọc (Vé thường)</h3>
           <span class="badge-count badge-amber">{{ pendingSpots.length }} xe</span>
         </div>
         <div class="table-scroll custom-scrollbar">
@@ -140,6 +140,81 @@
           </div>
         </div>
       </div>
+
+    </div>
+
+    <!-- KPI VÉ THÁNG -->
+    <div class="monthly-kpi-section margin-bottom-24">
+      <h3 class="section-title">🎫 Thông tin vé tháng</h3>
+      <div class="monthly-kpi-grid">
+        <div class="monthly-kpi-card">
+          <div class="monthly-kpi-icon blue">🏢</div>
+          <div class="monthly-kpi-info">
+            <p class="monthly-kpi-label">Sức chứa</p>
+            <h3 class="monthly-kpi-value">{{ monthlySlots }}</h3>
+          </div>
+        </div>
+        <div class="monthly-kpi-card">
+          <div class="monthly-kpi-icon purple">📋</div>
+          <div class="monthly-kpi-info">
+            <p class="monthly-kpi-label">Tổng vé tháng</p>
+            <h3 class="monthly-kpi-value">{{ kpi.monthlyTotal }}</h3>
+          </div>
+        </div>
+        <div class="monthly-kpi-card">
+          <div class="monthly-kpi-icon amber">⏳</div>
+          <div class="monthly-kpi-info">
+            <p class="monthly-kpi-label">Chưa vào bãi</p>
+            <h3 class="monthly-kpi-value">{{ kpi.monthlyPending }}</h3>
+          </div>
+        </div>
+        <div class="monthly-kpi-card">
+          <div class="monthly-kpi-icon green">🚗</div>
+          <div class="monthly-kpi-info">
+            <p class="monthly-kpi-label">Đang trong bãi</p>
+            <h3 class="monthly-kpi-value">{{ kpi.monthlyParked }}</h3>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sơ đồ vé tháng -->
+    <div class="main-data-card margin-bottom-24">
+      <div class="card-header flex-between">
+        <h3 class="card-title">🎫 Sơ đồ vé tháng</h3>
+        <div class="legend-group">
+          <span class="legend-item"><span class="dot dot-amber"></span>Chưa vào</span>
+          <span class="legend-item"><span class="dot dot-emerald"></span>Đang đỗ</span>
+          <span class="legend-item"><span class="dot dot-gray"></span>Trống</span>
+        </div>
+      </div>
+
+      <div class="spot-grid">
+        <!-- Hiển thị tất cả các ô vé tháng (bao gồm cả ô trống) -->
+        <template v-for="index in monthlySlots" :key="'monthly-' + index">
+          <div
+            v-if="monthlyTicketsArray[index - 1]"
+            :class="['spot-cell', 'monthly', monthlyTicketsArray[index - 1].status === 'PARKED' ? 'parked' : 'pending']"
+            :title="monthlyTicketsArray[index - 1].plate"
+            @click="showMonthlyTicketDetail(monthlyTicketsArray[index - 1])"
+          >
+            <div class="spot-plate">{{ monthlyTicketsArray[index - 1].plate }}</div>
+            <span v-if="monthlyTicketsArray[index - 1].status === 'PARKED'" class="spot-car-icon">🚗</span>
+            <span v-else class="spot-car-icon">⏳</span>
+          </div>
+          <div
+            v-else
+            class="spot-cell monthly available"
+            title="Chưa có vé tháng"
+          >
+            <span class="spot-empty-icon">📋</span>
+          </div>
+        </template>
+      </div>
+
+      <div class="spot-grid-footer">
+        Nhấn vào ô để xem chi tiết vé tháng
+      </div>
     </div>
 
     <!-- Modal chi tiết ô -->
@@ -157,7 +232,39 @@
                 <h4>Ô đỗ đang trống</h4>
                 <p>Chưa có phương tiện nào.</p>
               </div>
+              <div v-else-if="selectedSpot.status === 'monthly'" class="detail-info-list">
+                <div class="info-group">
+                  <label>Loại vé</label>
+                  <span class="status-badge monthly-type">Vé tháng</span>
+                </div>
+                <div class="info-group">
+                  <label>Mã vé tháng</label>
+                  <div class="plate-display-large">{{ selectedSpot.id }}</div>
+                </div>
+                <div class="info-group">
+                  <label>Biển số xe</label>
+                  <div class="plate-display-large">{{ selectedSpot.plate }}</div>
+                </div>
+                <div class="info-group">
+                  <label>Trạng thái</label>
+                  <span :class="['status-badge', 'monthly-status', (selectedSpot as any).monthlyStatus?.toLowerCase()]">
+                    {{ getMonthlyStatusText((selectedSpot as any).monthlyStatus || 'PENDING') }}
+                  </span>
+                </div>
+                <div class="info-group">
+                  <label>Ngày bắt đầu</label>
+                  <span class="font-bold">{{ (selectedSpot as any).startDate }}</span>
+                </div>
+                <div class="info-group">
+                  <label>Ngày kết thúc</label>
+                  <span class="font-bold">{{ (selectedSpot as any).endDate }}</span>
+                </div>
+              </div>
               <div v-else class="detail-info-list">
+                <div class="info-group">
+                  <label>Loại vé</label>
+                  <span class="status-badge normal-type">Vé thường</span>
+                </div>
                 <div class="info-group">
                   <label>Tình trạng</label>
                   <span :class="['status-badge', selectedSpot.status]">
@@ -199,6 +306,15 @@ type SpotInfo = {
   timeIn?: string
 }
 
+type MonthlyTicketInfo = {
+  id: number
+  ticketCode: string
+  plate: string
+  status: string
+  startDate: string
+  endDate: string
+}
+
 const authStore = useAuthStore()
 
 const currentLot = computed(() => ({
@@ -207,15 +323,30 @@ const currentLot = computed(() => ({
 }))
 
 const spots = ref<SpotInfo[]>([])
+const monthlyTickets = ref<MonthlyTicketInfo[]>([])
+const monthlySlots = ref<number>(0)
+const normalAvailableCount = ref<number>(0)
+const normalSlots = ref<number>(0)
 const isDetailOpen = ref<boolean>(false)
 const selectedSpot = ref<SpotInfo | null>(null)
 let intervalId: ReturnType<typeof setInterval> | null = null
 
+const monthlyTicketsArray = computed(() => {
+  const arr: (MonthlyTicketInfo | null)[] = []
+  monthlyTickets.value.forEach(ticket => {
+    arr.push(ticket)
+  })
+  return arr
+})
+
 const kpi = computed(() => ({
-  total: spots.value.length,
-  available: spots.value.filter(s => s.status === 'available').length,
+  total: normalSlots.value,
+  available: normalAvailableCount.value,
   pending: spots.value.filter(s => s.status === 'pending').length,
   occupied: spots.value.filter(s => s.status === 'occupied').length,
+  monthlyTotal: monthlyTickets.value.length,
+  monthlyPending: monthlyTickets.value.filter(t => t.status === 'PENDING').length,
+  monthlyParked: monthlyTickets.value.filter(t => t.status === 'PARKED').length
 }))
 
 const occupiedSpots = computed(() =>
@@ -237,7 +368,13 @@ const loadData = async () => {
     return
   }
   try {
-    const data = await apiClient.get(`/staff/map-live/${lotId}`) as { spots: SpotInfo[] }
+    const data = await apiClient.get(`/staff/map-live/${lotId}`) as {
+      spots: SpotInfo[]
+      monthlyTickets?: MonthlyTicketInfo[]
+      monthlySlots?: number
+      normalSlots?: number
+      availableCount?: number
+    }
     if (!data || !Array.isArray(data.spots)) {
       throw new Error('Dữ liệu trả về không hợp lệ')
     }
@@ -247,6 +384,17 @@ const loadData = async () => {
       plate: s.plate || '',
       timeIn: s.timeIn || ''
     }))
+    monthlyTickets.value = (data.monthlyTickets || []).map((t: MonthlyTicketInfo) => ({
+      id: t.id,
+      ticketCode: t.ticketCode,
+      plate: t.plate,
+      status: t.status,
+      startDate: t.startDate,
+      endDate: t.endDate
+    }))
+    monthlySlots.value = data.monthlySlots || 0
+    normalSlots.value = data.normalSlots || 0
+    normalAvailableCount.value = data.availableCount || 0
     loadError.value = false
     retryCount.value = 0
     // Khôi phục interval bình thường sau khi thành công
@@ -276,7 +424,29 @@ const loadData = async () => {
   }
 }
 
-const showSpotDetails = (spot: SpotInfo) => { selectedSpot.value = spot; isDetailOpen.value = true }
+const showSpotDetails = (spot: SpotInfo) => {
+  selectedSpot.value = spot
+  isDetailOpen.value = true
+}
+
+const showMonthlyTicketDetail = (ticket: MonthlyTicketInfo) => {
+  selectedSpot.value = {
+    id: ticket.ticketCode,
+    status: 'monthly' as SpotStatus,
+    plate: ticket.plate,
+    timeIn: ticket.startDate,
+    ticketCode: ticket.ticketCode,
+    startDate: ticket.startDate,
+    endDate: ticket.endDate,
+    monthlyStatus: ticket.status
+  } as any
+  isDetailOpen.value = true
+}
+
+const getMonthlyStatusText = (status: string) => {
+  // Chỉ có 2 trạng thái: Đang đỗ hoặc Chưa vào
+  return status === 'PARKED' ? 'Đang đỗ' : 'Chưa vào'
+}
 const closeDetail = () => { isDetailOpen.value = false }
 const retryNow = () => {
   retryCount.value = 0
@@ -341,6 +511,9 @@ onUnmounted(() => {
 .dot-emerald { background: #10b981; }
 .dot-amber { background: #f59e0b; }
 .dot-rose { background: #ef4444; }
+.dot-purple { background: #a855f7; }
+.dot-purple-light { background: #d8b4fe; }
+.dot-gray { background: #cbd5e1; }
 
 /* Occupancy bar */
 .occupancy-bar-wrapper { padding: 14px 20px 0; display: flex; align-items: center; gap: 12px; }
@@ -351,14 +524,48 @@ onUnmounted(() => {
 .occupancy-label { font-size: 13px; font-weight: 700; color: #475569; white-space: nowrap; }
 
 /* Spot Grid — không đánh số, hiển thị dạng ô vuông trực quan */
-.spot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; padding: 20px; background: #f8fafc; }
-.spot-cell { height: 52px; border-radius: 8px; border: 2px solid; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease; font-size: 20px; }
+.spot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 12px; padding: 20px; background: #f8fafc; }
+.spot-cell { height: 80px; border-radius: 8px; border: 2px solid; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s ease; font-size: 20px; position: relative; gap: 4px; padding: 8px; }
 .spot-cell:hover { transform: scale(1.08); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
 .spot-cell.available { background: #f0fdf4; border-color: #86efac; }
 .spot-cell.available:hover { background: #dcfce7; }
 .spot-cell.pending { background: #fffbeb; border-color: #fcd34d; }
 .spot-cell.occupied { background: #fef2f2; border-color: #fca5a5; }
-.spot-car-icon { line-height: 1; }
+.spot-car-icon { line-height: 1; font-size: 24px; }
+
+/* Vé tháng styling */
+.spot-cell.monthly.pending {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: #f59e0b;
+  border-width: 3px;
+}
+.spot-cell.monthly.parked {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: #10b981;
+  border-width: 3px;
+}
+.spot-cell.monthly.available {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  border-style: dashed;
+}
+.spot-empty-icon { font-size: 28px; opacity: 0.3; }
+.spot-plate {
+  font-size: 11px;
+  font-weight: 800;
+  font-family: monospace;
+  background: #0f172a;
+  color: #facc15;
+  padding: 4px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
+}
+
 .spot-grid-footer { text-align: center; padding: 10px; font-size: 12px; color: #94a3b8; border-top: 1px solid #f1f5f9; }
 
 /* Table section */
@@ -408,6 +615,36 @@ onUnmounted(() => {
 .text-muted { color: #64748b; }
 .text-xs { font-size: 12px; }
 .margin-bottom-24 { margin-bottom: 24px; }
+
+/* Monthly KPI Section */
+.monthly-kpi-section { background: linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%); border-radius: 16px; padding: 20px; border: 1px solid #e9d5ff; }
+.section-title { font-size: 16px; font-weight: 800; color: #0f172a; margin: 0 0 16px 0; }
+.monthly-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+@media (max-width: 1024px) { .monthly-kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .monthly-kpi-grid { grid-template-columns: 1fr; } }
+.monthly-kpi-card { background: white; border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); }
+.monthly-kpi-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.monthly-kpi-icon.blue { background: #eff6ff; color: #2563eb; }
+.monthly-kpi-icon.purple { background: #f3e8ff; color: #7c3aed; }
+.monthly-kpi-icon.amber { background: #fffbeb; color: #f59e0b; }
+.monthly-kpi-icon.green { background: #ecfdf5; color: #10b981; }
+.monthly-kpi-label { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 2px 0; }
+.monthly-kpi-value { font-size: 24px; font-weight: 800; margin: 0; color: #0f172a; }
+
+/* Monthly Ticket Badges */
+.badge-count.badge-purple { background: #9333ea; }
+.full-width-card { grid-column: 1 / -1; }
+.ticket-code-badge { background: #f3e8ff; border: 1px solid #d8b4fe; padding: 4px 10px; border-radius: 6px; font-family: monospace; font-weight: 700; font-size: 12px; color: #7c3aed; }
+.status-badge.parked { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.status-badge.checkout { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.status-badge.paying { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+.status-badge.monthly-type { background: linear-gradient(135deg, #a855f7, #7c3aed); color: white; border: none; padding: 6px 14px; font-size: 12px; }
+.status-badge.normal-type { background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; border: none; padding: 6px 14px; font-size: 12px; }
+
+.status-badge.monthly-status.pending { background: #fef3c7; color: #a16207; border: 1px solid #fde047; }
+.status-badge.monthly-status.parked { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+.status-badge.monthly-status.checkout { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.status-badge.monthly-status.paying { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
 
 /* Animations */
 .animated { animation-duration: 0.3s; animation-fill-mode: both; }
