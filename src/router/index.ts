@@ -98,6 +98,14 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/views/customer/ParkingHistory.vue'),
         meta: { requiresAuth: true, role: 'CUSTOMER', title: 'Nhật ký gửi xe', showBack: true }
       },
+
+      // VÉ THÁNG: Quản lý vé đỗ xe dài hạn
+      {
+        path: 'monthly-tickets',
+        name: 'MonthlyTickets',
+        component: () => import('@/views/customer/MonthlyTickets.vue'),
+        meta: { requiresAuth: true, role: 'CUSTOMER', title: 'Vé tháng của tôi', showBack: true }
+      },
       {
         path: 'policy',
         name: 'ParkingPolicy',
@@ -123,6 +131,7 @@ const routes: Array<RouteRecordRaw> = [
     children: [
       { path: 'revenue-report', name: 'RevenueReport', component: () => import('@/views/admin/RevenueReport.vue'), meta: { title: 'Báo cáo doanh thu' } },
       { path: 'parking-manage', name: 'ParkingManage', component: () => import('@/views/admin/ParkingManage.vue'), meta: { title: 'Danh sách bãi đỗ' } },
+      { path: 'monthly-tickets', name: 'MonthlyTicketManage', component: () => import('@/views/admin/MonthlyTicketManage.vue'), meta: { title: 'Quản lý vé tháng' } },
       { path: 'user-manage', name: 'UserManage', component: () => import('@/views/admin/UserManage.vue'), meta: { title: 'Quản lý tài khoản' } },
       { path: 'parking-map', name: 'AdminParkingMap', component: () => import('@/views/admin/AdminParkingMap.vue'), meta: { title: 'Sơ đồ ô bãi' } },
       { path: 'shift-assignment', name: 'AdminShiftAssignment', component: () => import('@/views/admin/AdminShiftAssignment.vue'), meta: { title: 'Phân công ca trực' } },
