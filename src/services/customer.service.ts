@@ -12,6 +12,33 @@ export interface BookingRequest {
   plate: string
 }
 
+export interface MonthlyTicketRequest {
+  lotId: number
+  plate: string
+  startDate: string
+  endDate: string
+  paymentGateway?: 'PAYOS' | 'MOMO' | string
+}
+
+export interface MonthlyTicketPurchaseResponse {
+  success?: boolean
+  message?: string
+  paymentUrl?: string
+  orderId?: string
+  bookingId?: number
+  ticketCode?: string
+  amount?: number
+}
+
+export interface MonthlyCapacityCheckResponse {
+  canPurchase: boolean
+  monthlyPrice: number
+  totalMonthlySlots: number
+  existingTickets: number
+  availableSlots: number
+  message?: string
+}
+
 export interface PaymentResponse {
   paymentUrl: string // URL của VNPay/MoMo trả về để chuyển hướng
   orderId: string
@@ -36,6 +63,31 @@ export interface TicketResponse {
   longitude?: number
   lotLat?: number
   lotLng?: number
+}
+
+export interface MonthlyTicketResponse {
+  id: number
+  ticketCode: string
+  lotId?: number
+  lotName: string
+  lotAddress?: string
+  plate: string
+  status: string
+  startDate: string
+  endDate: string
+  pricePaid: number
+  qrCode: string
+  createdAt: string
+}
+
+export interface MonthlyTicketPurchaseResponse {
+  success?: boolean
+  message?: string
+  paymentUrl?: string
+  orderId?: string
+  bookingId?: number
+  ticketCode?: string
+  amount?: number
 }
 
 export interface VehicleResponse {
@@ -73,6 +125,8 @@ export interface ParkingDetailResponse {
   pricePerHour: number
   status: string
   availableSpots: number
+  monthlySlots?: number
+  normalSlots?: number
 }
 
 // --- API Calls ---
@@ -103,8 +157,17 @@ export const CustomerService = {
   },
 
   // Lấy danh sách xe của cá nhân
+  getVehicles(): Promise<VehicleResponse[]> {
+    return apiClient.get('/customer/vehicles')
+  },
+
   getMyVehicles(): Promise<VehicleResponse[]> {
     return apiClient.get('/customer/vehicles')
+  },
+
+  // Search nearby parking lots (alias for findNearestParking)
+  searchNearby(params: SearchQuery): Promise<{ data: NearbyParkingLot[] }> {
+    return this.findNearestParking(params).then(data => ({ data }))
   },
 
   addVehicle(data: { plate: string, model: string }): Promise<VehicleResponse> {
@@ -128,5 +191,53 @@ export const CustomerService = {
   // Lấy lịch sử gửi xe
   getHistory(): Promise<HistoryLog[]> {
     return apiClient.get('/customer/history')
+  },
+
+  // === VÉ THÁNG ENDPOINTS ===
+
+  // Lấy danh sách vé tháng của user
+  getMonthlyTickets(): Promise<MonthlyTicketResponse[]> {
+    return apiClient.get<MonthlyTicketResponse[]>('/customer/monthly-tickets')
+  },
+
+  // Lấy vé tháng đang hoạt động
+  getActiveMonthlyTickets(): Promise<MonthlyTicketResponse[]> {
+    return apiClient.get<MonthlyTicketResponse[]>('/customer/monthly-tickets/active')
+  },
+
+  // Kiểm tra capacity vé tháng còn lại
+  async checkMonthlyCapacity(lotId: number, startDate: string, endDate: string): Promise<MonthlyCapacityCheckResponse> {
+    const res = await apiClient.post<MonthlyCapacityCheckResponse>('/customer/monthly-tickets/check-capacity', {
+      lotId,
+      startDate,
+      endDate
+    })
+    return res as unknown as MonthlyCapacityCheckResponse
+  },
+
+  // Mua vé tháng
+  async purchaseMonthlyTicket(request: MonthlyTicketRequest): Promise<MonthlyTicketPurchaseResponse> {
+    const res = await apiClient.post<MonthlyTicketPurchaseResponse>('/customer/monthly-tickets/purchase', request)
+    return res as unknown as MonthlyTicketPurchaseResponse
+  },
+
+  async createMonthlyTicketPayosPayment(request: {
+    amount: number
+    bookingId: number
+    ticketCode: string
+    plate: string
+    lotId: number
+    lotName: string
+    baseUrl: string
+    returnUrl: string
+    cancelUrl: string
+  }): Promise<{ paymentUrl?: string; orderId?: string; status?: string; message?: string; amount?: number }> {
+    const res = await apiClient.post('/payos/create', request)
+    return res as unknown as { paymentUrl?: string; orderId?: string; status?: string; message?: string; amount?: number }
+  },
+
+  // Lấy vé tháng valid hôm nay (để hiển thị QR)
+  getTodayValidMonthlyTickets(): Promise<MonthlyTicketResponse[]> {
+    return apiClient.get('/customer/monthly-tickets/today-valid')
   }
 }
