@@ -263,7 +263,7 @@
               <div class="form-row">
                 <div class="form-group half">
                   <label>Ngày làm hiện tại *</label>
-                  <input v-model="shiftForm.currentShiftDate" type="date" class="form-control" />
+                  <input v-model="shiftForm.currentShiftDate" type="date" lang="vi" class="form-control" />
                 </div>
                 <div class="form-group half">
                   <label>Ca hiện tại *</label>
@@ -279,7 +279,7 @@
               <div class="form-row">
                 <div class="form-group half">
                   <label>Ngày làm mong muốn *</label>
-                  <input v-model="shiftForm.targetShiftDate" type="date" class="form-control" />
+                  <input v-model="shiftForm.targetShiftDate" type="date" lang="vi" class="form-control" />
                 </div>
                 <div class="form-group half">
                   <label>Đồng nghiệp để đổi ca *</label>
@@ -621,14 +621,14 @@ const getTypeIcon = (type: string) => {
 
 const formatDateTime = (dateStr: string) => {
   const d = new Date(dateStr)
-  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')} ${d.getDate()}/${d.getMonth() + 1}`
+  return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')} ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 const formatShiftDate = (dateStr: string) => {
   if (!dateStr) return 'N/A'
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) return 'N/A'
-  return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`
 }
 
 onMounted(() => {
