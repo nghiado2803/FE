@@ -217,86 +217,104 @@
               </div>
             </div>
 
-            <div v-else class="history-list">
+            <div v-else class="coupon-list">
               <div
                 v-for="ticket in filteredHistoryTickets"
                 :key="ticket.id"
-                class="history-item-wrapper"
-                :class="statusClass(ticket.status)"
+                class="coupon-card"
+                :class="{ 'paying-ticket': ticket.status === 'PAYING', 'cancelled-ticket': ticket.status === 'CANCELLED' }"
               >
-                <div class="history-item" @click="ticket.status !== 'CANCELLED' && ticket.status !== 'PAYING' ? showQRCode(ticket) : null" :style="ticket.status === 'CANCELLED' || ticket.status === 'PAYING' ? 'cursor: not-allowed; opacity: 0.7' : 'cursor: pointer'">
-                  <div class="history-left">
-                    <div class="history-avatar" :class="statusClass(ticket.status)">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M2 17h20"></path>
-                        <path d="M5 17V9a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v8"></path>
-                        <path d="M8 17V7h8v10"></path>
-                      </svg>
+                <div class="coupon-notch top-left"></div>
+                <div class="coupon-notch top-right"></div>
+                <div class="coupon-notch bottom-left"></div>
+                <div class="coupon-notch bottom-right"></div>
+
+                <div class="coupon-top-bar">
+                  <span class="ticket-code-mono">{{ ticket.ticketCode }}</span>
+                  <span class="status-badge" :class="statusClass(ticket.status)">
+                    {{ getStatusText(ticket.status, ticket.startDate, ticket.endDate) }}
+                  </span>
+                </div>
+
+                <div class="coupon-body">
+                  <div class="coupon-info">
+                    <div class="parking-lot-row">
+                      <span class="ticket-icon-pill">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                      </span>
+                      <span class="lot-name">{{ ticket.lotName }}</span>
                     </div>
-                    <div class="history-info">
-                      <div class="history-top">
-                        <span class="history-code">{{ ticket.ticketCode }}</span>
-                        <span class="status-badge small" :class="statusClass(ticket.status)">
-                          {{ getStatusText(ticket.status, ticket.startDate, ticket.endDate) }}
-                        </span>
-                      </div>
-                      <div class="history-meta">
-                        <span class="meta-item">
+                    <div class="plate-frame">
+                      <div class="plate-number">{{ ticket.plate }}</div>
+                    </div>
+                    <div class="date-range-row">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                      </svg>
+                      <span class="range-text">{{ formatDateRange(ticket.startDate, ticket.endDate) }}</span>
+                    </div>
+                  </div>
+
+                  <div class="coupon-divider">
+                    <div class="divider-dash"></div>
+                  </div>
+
+                  <div class="coupon-side">
+                    <div class="coupon-actions">
+                      <button v-if="ticket.status === 'PAYING'" @click="confirmDeleteTicket(ticket)" class="coupon-btn delete-btn" title="Xóa vé chưa thanh toán">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          <line x1="10" y1="11" x2="10" y2="17"></line>
+                          <line x1="14" y1="11" x2="14" y2="17"></line>
+                        </svg>
+                        Xóa vé
+                      </button>
+                      <template v-else-if="ticket.status !== 'CANCELLED'">
+                        <button @click="showQRCode(ticket)" class="coupon-btn qr-btn" title="Xem mã QR">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                            <circle cx="12" cy="10" r="3"></circle>
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
                           </svg>
-                          {{ ticket.lotName }}
-                        </span>
-                        <span class="meta-item plate-meta">
-                          <span class="plate-mini">{{ ticket.plate }}</span>
-                        </span>
-                      </div>
-                      <div class="history-bottom">
-                        <span class="history-date">{{ formatDateRange(ticket.startDate, ticket.endDate) }}</span>
-                        <span class="history-price">{{ formatCurrency(ticket.pricePaid) }}</span>
+                          Mã QR
+                        </button>
+                        <button v-if="ticket.status === 'PENDING' && canEditTicket(ticket)" @click="showEditModal(ticket)" class="coupon-btn edit-btn" title="Chỉnh sửa">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                          Sửa
+                        </button>
+                        <button @click="showTicketDetail(ticket)" class="coupon-btn detail-btn" title="Chi tiết">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                          </svg>
+                          Chi tiết
+                        </button>
+                      </template>
+                      <div v-else class="cancelled-indicator">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        <span>Vé đã hủy</span>
                       </div>
                     </div>
                   </div>
-                  <div class="history-actions-side">
-                    <div v-if="ticket.status !== 'CANCELLED' && ticket.status !== 'PAYING'" class="history-chevron-wrapper">
-                      <svg class="history-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                      </svg>
-                    </div>
+                </div>
 
-                    <button
-                      v-if="ticket.status === 'PENDING' && canEditTicket(ticket)"
-                      @click.stop="showEditModal(ticket)"
-                      class="history-action-icon btn-history-edit"
-                      title="Chỉnh sửa vé"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L18.5 2.5z"></path>
-                      </svg>
-                    </button>
-
-                    <button
-                      v-if="ticket.status === 'PAYING'"
-                      @click.stop="confirmDeleteTicket(ticket)"
-                      class="history-action-icon btn-history-delete"
-                      title="Xóa vé chưa thanh toán"
-                    >
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        <line x1="10" y1="11" x2="10" y2="17"></line>
-                        <line x1="14" y1="11" x2="14" y2="17"></line>
-                      </svg>
-                    </button>
-
-                    <div v-if="ticket.status === 'CANCELLED'" class="cancelled-mark">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </div>
-                  </div>
+                <div class="coupon-perforation">
+                  <span v-for="i in 22" :key="i" class="perf-hole"></span>
                 </div>
               </div>
             </div>
@@ -1054,6 +1072,41 @@ const deleteTicket = async (ticketId: number) => {
   top: 0; left: 0; right: 0;
   height: 4px;
   background: linear-gradient(90deg, #2563eb 0%, #06b6d4 100%);
+}
+
+/* Vé đã hủy */
+.coupon-card.cancelled-ticket {
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  opacity: 0.85;
+}
+.coupon-card.cancelled-ticket::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #94a3b8 0%, #64748b 100%);
+}
+
+/* Cancelled indicator */
+.cancelled-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 10px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 10px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+.cancelled-indicator svg {
+  width: 24px;
+  height: 24px;
+  color: #94a3b8;
 }
 
 .coupon-notch {
