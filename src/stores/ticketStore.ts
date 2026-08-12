@@ -10,6 +10,7 @@ export type ActiveTicket = {
   address?: string
   plate: string
   spotCode: string
+  bookingType?: string
   depositPaid: number
   pricePerHour?: number
   bookingTime?: string   // Lúc đặt cọc (để đếm ngược 30p)
