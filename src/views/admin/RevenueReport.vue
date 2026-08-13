@@ -16,6 +16,7 @@
           <option value="DAY">Hôm nay</option>
           <option value="WEEK">7 ngày qua</option>
           <option value="MONTH">30 ngày qua</option>
+          <option value="QUARTER">3 tháng qua</option>
           <option value="YEAR">Năm nay</option>
         </select>
 
@@ -56,6 +57,7 @@
             Hiển thị theo:
             <span v-if="filterType === 'DAY'">Hôm nay (6 khung 4h)</span>
             <span v-else-if="filterType === 'WEEK'">7 ngày qua (theo ngày)</span>
+            <span v-else-if="filterType === 'QUARTER'">3 tháng qua (theo tháng)</span>
             <span v-else-if="filterType === 'YEAR'">Năm nay (theo quý)</span>
             <span v-else>30 ngày qua (theo tuần)</span>
           </span>
@@ -107,7 +109,7 @@
 
     <div class="main-data-card margin-top-24">
       <div class="card-inner-header flex-between">
-        <h3>Nhật ký giao dịch (Bấm vào dòng để xem chi tiết hóa đơn)</h3>
+        <h3>Nhật ký giao dịch vé thường (Bấm vào dòng để xem chi tiết hóa đơn)</h3>
         <span class="status-badge warning" v-if="isLoading">⏳ Đang đồng bộ tính toán...</span>
         <span class="status-badge success" v-else>✓ Đồng bộ thành công</span>
       </div>
@@ -154,7 +156,61 @@
             </tr>
             <tr v-if="displayedTransactions.length === 0">
               <td colspan="6" class="text-center text-muted" style="padding: 20px;">
-                Không có dữ liệu giao dịch cho bãi đỗ này trong thời gian được chọn.
+                Không có dữ liệu giao dịch vé thường cho bãi đỗ này trong thời gian được chọn.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Monthly Tickets Table -->
+    <div class="main-data-card margin-top-24">
+      <div class="card-inner-header flex-between">
+        <h3>🎫 Nhật ký vé tháng (Đã thanh toán hoặc đã hủy)</h3>
+        <span class="badge-count badge-purple">{{ displayedMonthlyTickets.length }} vé</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="modern-admin-table">
+          <thead>
+            <tr>
+              <th>Mã vé tháng</th>
+              <th>Khách hàng</th>
+              <th>Biển số xe</th>
+              <th>Điểm đỗ xe</th>
+              <th>Thời hạn</th>
+              <th>Thời gian thanh toán</th>
+              <th class="text-right">Tổng tiền</th>
+              <th>Trạng thái</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="ticket in displayedMonthlyTickets" :key="ticket.id" class="table-row-interactive">
+              <td><span class="code-text monthly-code">#{{ ticket.ticketCode }}</span></td>
+              <td><span class="customer-name-text">{{ ticket.customerName }}</span></td>
+              <td>
+                <div class="license-plate">{{ ticket.plate }}</div>
+              </td>
+              <td><span class="secondary-text">{{ ticket.lotName }}</span></td>
+              <td>
+                <div class="date-range-cell">
+                  <div class="date-range-text">{{ ticket.startDate }} → {{ ticket.endDate }}</div>
+                </div>
+              </td>
+              <td><span class="date-text">{{ ticket.paymentTime }}</span></td>
+              <td class="text-right text-bold" :class="ticket.status === 'COMPLETED' ? 'text-emerald' : 'text-muted'">
+                + {{ ticket.amount.toLocaleString() }} đ
+              </td>
+              <td>
+                <span :class="['status-badge', ticket.status === 'COMPLETED' ? 'success' : 'neutral']">
+                  {{ ticket.status === 'COMPLETED' ? 'Đã thanh toán' : 'Đã hủy' }}
+                </span>
+              </td>
+            </tr>
+            <tr v-if="displayedMonthlyTickets.length === 0">
+              <td colspan="8" class="text-center text-muted" style="padding: 20px;">
+                Không có vé tháng nào đã thanh toán hoặc đã hủy trong thời gian được chọn.
               </td>
             </tr>
           </tbody>
@@ -235,7 +291,7 @@ import { ref, onMounted, watch } from 'vue'
 import { utils, writeFile } from 'xlsx'
 import { AdminService } from '@/services/admin.service'
 
-type FilterType = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR'
+type FilterType = 'DAY' | 'WEEK' | 'MONTH' | 'QUARTER' | 'YEAR'
 
 type RevenueSummary = {
   totalEarned: number
@@ -270,6 +326,19 @@ type Transaction = {
   customerName: string
 }
 
+type MonthlyTicket = {
+  id: string | number
+  ticketCode: string
+  plate: string
+  lotName: string
+  startDate: string
+  endDate: string
+  paymentTime: string
+  amount: number
+  status: string
+  customerName: string
+}
+
 const revenueSummary = ref<RevenueSummary>({
   totalEarned: 0,
   totalVehicles: 0,
@@ -281,10 +350,12 @@ const parkingLots = ref<{id: number, name: string}[]>([])
 const isLoading = ref(false)
 const errorMessage = ref<string | null>(null)
 
-const filterType = ref<FilterType>('MONTH')
+const filterType = ref<FilterType>('DAY')
 const selectedLot = ref<string>('ALL')
 const allRecentTransactions = ref<Transaction[]>([])
 const displayedTransactions = ref<Transaction[]>([])
+const allMonthlyTickets = ref<MonthlyTicket[]>([])
+const displayedMonthlyTickets = ref<MonthlyTicket[]>([])
 const pieChartData = ref<PieSlice[]>([])
 const isModalOpen = ref(false)
 const selectedTx = ref<Transaction | null>(null)
@@ -307,9 +378,11 @@ const loadRevenueData = async () => {
     revenueSummary.value = revenueRes.summary
     chartData.value = revenueRes.chartData
     allRecentTransactions.value = revenueRes.transactions
+    allMonthlyTickets.value = revenueRes.monthlyTickets || []
     parkingLots.value = lotsRes.map(l => ({ id: l.id!, name: l.name }))
 
     updateDisplayedTransactions()
+    updateDisplayedMonthlyTickets()
     calculatePieChart()
   } catch (error) {
     errorMessage.value = 'Lỗi khi tải báo cáo doanh thu'
@@ -324,6 +397,14 @@ const updateDisplayedTransactions = () => {
     displayedTransactions.value = allRecentTransactions.value
   } else {
     displayedTransactions.value = allRecentTransactions.value.filter(tx => tx.lotName === selectedLot.value)
+  }
+}
+
+const updateDisplayedMonthlyTickets = () => {
+  if (selectedLot.value === 'ALL') {
+    displayedMonthlyTickets.value = allMonthlyTickets.value
+  } else {
+    displayedMonthlyTickets.value = allMonthlyTickets.value.filter(tx => tx.lotName === selectedLot.value)
   }
 }
 
@@ -480,6 +561,14 @@ onMounted(() => {
 .inv-value-total { font-size: 18px; font-weight: 800; color: #10b981; }
 .inv-label-sub { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; }
 .badge-gateway { background-color: #e0e7ff; color: #4338ca; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+
+.badge-count { background: #f3f4f6; color: #6b7280; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.badge-purple { background: #f3e8ff; color: #7c3aed; }
+
+.monthly-code { background: #faf5ff !important; color: #7c3aed !important; border: 1px solid #e9d5ff; }
+.customer-name-text { font-weight: 600; color: #1e293b; }
+.date-range-cell { display: flex; flex-direction: column; gap: 4px; }
+.date-range-text { font-size: 13px; color: #475569; font-weight: 600; }
 
 .status-badge-inline { padding: 4px 10px; border-radius: 6px; font-weight: 700; font-size: 12px; }
 .status-badge-inline.success { background-color: #dcfce7; color: #15803d; }
