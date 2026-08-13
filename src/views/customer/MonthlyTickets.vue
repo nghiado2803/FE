@@ -170,13 +170,6 @@
                           </svg>
                           Mã QR
                         </button>
-                        <button @click="showEditModal(ticket)" class="coupon-btn edit-btn" title="Chỉnh sửa">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                          </svg>
-                          Sửa
-                        </button>
                         <button @click="showTicketDetail(ticket)" class="coupon-btn detail-btn" title="Chi tiết">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
@@ -286,13 +279,6 @@
                           </svg>
                           Mã QR
                         </button>
-                        <button v-if="ticket.status === 'PENDING' && canEditTicket(ticket)" @click="showEditModal(ticket)" class="coupon-btn edit-btn" title="Chỉnh sửa">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                          </svg>
-                          Sửa
-                        </button>
                         <button @click="showTicketDetail(ticket)" class="coupon-btn detail-btn" title="Chi tiết">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="12" cy="12" r="10"></circle>
@@ -340,9 +326,8 @@
         </div>
         <div class="qr-details">
           <div class="qr-row"><span class="qr-label">Mã vé</span><span class="qr-value qr-code-text">{{ selectedTicket?.ticketCode }}</span></div>
-          <div class="qr-row"><span class="qr-label">Biển số</span><span class="qr-value"><span class="plate-mini blue-plate">{{ selectedTicket?.plate }}</span></span></div>
-          <div class="qr-row"><span class="qr-label">Bãi xe</span><span class="qr-value">{{ selectedTicket?.lotName }}</span></div>
-          <div class="qr-row"><span class="qr-label">Hiệu lực</span><span class="qr-value">{{ formatDateRange(selectedTicket?.startDate || '', selectedTicket?.endDate || '') }}</span></div>
+          <div class="qr-row"><span class="qr-label">Tên khách hàng</span><span class="qr-value">{{ customerName }}</span></div>
+          <div class="qr-row"><span class="qr-label">Số tiền đã book</span><span class="qr-value qr-price">{{ formatCurrency(selectedTicket?.pricePaid) }}</span></div>
         </div>
         <div class="qr-actions">
           <button @click="showQRModal = false" class="btn-action-secondary">Đóng</button>
@@ -350,93 +335,19 @@
       </div>
     </BaseModal>
 
-    <!-- Edit Monthly Ticket Modal -->
-    <BaseModal :isOpen="showEditTicketModal && !!editingTicket" title="Chỉnh Sửa Vé Tháng" @close="closeEditModal">
-      <div class="edit-ticket-modal">
-        <form @submit.prevent="submitEdit" class="edit-form">
-
-          <!-- 1. CHỌN BÃI XE -->
-          <div class="edit-section">
-            <label class="edit-label">Bãi đỗ xe <span class="req">*</span></label>
-            <BaseSelect
-              v-model="editForm.lotId"
-              :options="lotOptions"
-              placeholder="Chọn bãi xe..."
-              :disabled="isSubmitting"
-            />
-          </div>
-
-          <!-- 2. BIỂN SỐ XE -->
-          <div class="edit-section">
-            <label class="edit-label">Biển số xe <span class="req">*</span></label>
-            <BaseSelect
-              v-model="editForm.plate"
-              :options="vehicleOptions"
-              placeholder="Chọn biển số xe..."
-              :disabled="isSubmitting"
-            />
-          </div>
-
-          <!-- 3. THỜI GIAN -->
-          <div class="edit-section">
-            <label class="edit-label">Thời gian sử dụng <span class="req">*</span></label>
-            <div class="edit-date-range">
-              <div class="date-field">
-                <label class="date-field-label">Từ ngày</label>
-                <input
-                  type="date"
-                  v-model="editForm.startDate"
-                  :disabled="isSubmitting"
-                  class="edit-date-input"
-                />
-              </div>
-
-              <div class="date-arrow">→</div>
-
-              <div class="date-field">
-                <label class="date-field-label">Đến ngày</label>
-                <input
-                  type="date"
-                  v-model="editForm.endDate"
-                  :disabled="true"
-                  class="edit-date-input"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- ERROR -->
-          <transition name="pop">
-            <div v-if="editError" class="edit-error">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-              </svg>
-              <span>{{ editError }}</span>
-            </div>
-          </transition>
-
-          <!-- BUTTONS -->
-          <div class="edit-actions">
-            <button type="button" @click="closeEditModal" class="edit-btn ghost" :disabled="isSubmitting">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-              </svg>
-              Hủy bỏ
-            </button>
-            <button type="submit" class="edit-btn primary" :disabled="isSubmitting">
-              <LoadingSpinner v-if="isSubmitting" size="small" />
-              <template v-else>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
-                  <path d="M20 6L9 17l-5-5"></path>
-                </svg>
-                Lưu thay đổi
-              </template>
-            </button>
-          </div>
-        </form>
+    <!-- Detail Modal -->
+    <BaseModal :isOpen="showDetailModal && !!selectedDetailTicket" title="Chi Tiết Vé Tháng" @close="showDetailModal = false">
+      <div class="qr-modal">
+        <h3>Thông Tin Chi Tiết</h3>
+        <div class="qr-details">
+          <div class="qr-row"><span class="qr-label">Mã vé</span><span class="qr-value qr-code-text">{{ selectedDetailTicket?.ticketCode }}</span></div>
+          <div class="qr-row"><span class="qr-label">Biển số xe</span><span class="qr-value"><span class="plate-mini blue-plate">{{ selectedDetailTicket?.plate }}</span></span></div>
+          <div class="qr-row"><span class="qr-label">Bãi xe</span><span class="qr-value">{{ selectedDetailTicket?.lotName }}</span></div>
+          <div class="qr-row"><span class="qr-label">Hiệu lực</span><span class="qr-value">{{ formatDateRange(selectedDetailTicket?.startDate || '', selectedDetailTicket?.endDate || '') }}</span></div>
+        </div>
+        <div class="qr-actions">
+          <button @click="showDetailModal = false" class="btn-action-secondary">Đóng</button>
+        </div>
       </div>
     </BaseModal>
   </div>
@@ -447,58 +358,24 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import apiClient from '@/services/api'
 import { useMonthlyTicketStore } from '@/stores/monthlyTicketStore'
+import { useAuthStore } from '@/stores/authStore'
 import type { MonthlyTicketResponse } from '@/services/customer.service'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import QrCodeGenerator from '@/components/common/QrCodeGenerator.vue'
 import MonthlyTicketPurchase from '@/components/customer/MonthlyTicketPurchase.vue'
-import BaseSelect from '@/components/common/BaseSelect.vue'
-import { AdminService } from '@/services/admin.service'
 
 const router = useRouter()
 const route = useRoute()
 const monthlyTicketStore = useMonthlyTicketStore()
+const authStore = useAuthStore()
 const showPurchaseModal = ref(false)
 const showQRModal = ref(false)
 const selectedTicket = ref<MonthlyTicketResponse | null>(null)
-const showEditTicketModal = ref(false)
-const editingTicket = ref<MonthlyTicketResponse | null>(null)
-const userVehicles = ref<Array<{ id: number; plate: string; model: string }>>([])
-const isSubmitting = ref(false)
-const editError = ref('')
+const showDetailModal = ref(false)
+const selectedDetailTicket = ref<MonthlyTicketResponse | null>(null)
 
-const editForm = ref({
-  lotId: '' as string | number,
-  plate: '',
-  startDate: '',
-  endDate: ''
-})
-
-const parkingLots = ref<Array<{ id: number; name: string; address: string }>>([])
-
-const vehicleOptions = computed(() => {
-  return userVehicles.value.map(vehicle => {
-    const plate = (vehicle.plate || '').trim()
-    const model = (vehicle.model || 'Xe cá nhân').trim()
-    const label = `${plate}  ·  ${model}`
-    return {
-      value: plate,
-      text: label.length > 55 ? label.slice(0, 52).trimEnd() + '...' : label
-    }
-  })
-})
-
-const lotOptions = computed(() => {
-  return parkingLots.value.map(lot => {
-    const nameTrim = (lot.name || '').trim() || 'Bãi xe không tên'
-    const shortName = nameTrim.length > 52 ? nameTrim.slice(0, 49).trimEnd() + '...' : nameTrim
-    return {
-      value: lot.id,
-      text: shortName,
-      data: lot
-    }
-  })
-})
+const customerName = computed(() => authStore.user?.fullName || 'Khách hàng')
 
 const pendingMonthlyPaymentKey = 'pending_monthly_payment'
 let monthlyPaymentPolling: ReturnType<typeof setInterval> | null = null
@@ -521,27 +398,7 @@ onMounted(async () => {
   monthlyTicketStore.fetchActiveMonthlyTickets()
   handleRouteQuery()
   initializePendingMonthlyPayment()
-  await loadUserVehicles()
-  await loadParkingLots()
 })
-
-const loadUserVehicles = async () => {
-  try {
-    const response = await apiClient.get('/customer/vehicles') as Array<{ id: number; plate: string; model: string }>
-    userVehicles.value = response
-  } catch (error) {
-    console.error('Lỗi khi tải danh sách xe:', error)
-  }
-}
-
-const loadParkingLots = async () => {
-  try {
-    const response = await AdminService.getParkingLots()
-    parkingLots.value = (response || []) as Array<{ id: number; name: string; address: string }>
-  } catch (error) {
-    console.error('Lỗi khi tải danh sách bãi xe:', error)
-  }
-}
 
 onUnmounted(() => {
   clearMonthlyPaymentPolling()
@@ -623,8 +480,16 @@ const showQRCode = (ticket: MonthlyTicketResponse) => {
 }
 
 const showTicketDetail = (ticket: MonthlyTicketResponse) => {
-  console.log('Show ticket detail:', ticket)
-  showQRCode(ticket)
+  if (ticket.status === 'CANCELLED') {
+    window.toast?.('Vé đã hủy không thể xem chi tiết')
+    return
+  }
+  if (ticket.status === 'PAYING') {
+    window.toast?.('Vé chưa thanh toán không thể xem chi tiết')
+    return
+  }
+  selectedDetailTicket.value = ticket
+  showDetailModal.value = true
 }
 
 const handlePurchaseSuccess = () => {
@@ -683,79 +548,9 @@ const handleRouteQuery = () => {
   }
 }
 
-const showEditModal = (ticket: MonthlyTicketResponse) => {
-  // Chỉ cho phép sửa vé có status PENDING và chưa vào bãi
-  if (ticket.status !== 'PENDING') {
-    window.toast?.('Chỉ có thể chỉnh sửa vé chưa vào bãi!')
-    return
-  }
-
-  editingTicket.value = ticket
-  editForm.value = {
-    lotId: ticket.lotId || '',
-    plate: ticket.plate,
-    startDate: ticket.startDate,
-    endDate: ticket.endDate
-  }
-  editError.value = ''
-  showEditTicketModal.value = true
-}
-
-const canEditTicket = (ticket: MonthlyTicketResponse) => {
-  // Chỉ cho phép sửa vé PENDING (chưa vào bãi, chưa hết hạn, chưa hủy)
-  return ticket.status === 'PENDING'
-}
-
-const closeEditModal = () => {
-  showEditTicketModal.value = false
-  editingTicket.value = null
-  editError.value = ''
-  isSubmitting.value = false
-}
-
-const handleStartDateChange = () => {
-  if (editForm.value.startDate) {
-    const startDate = new Date(editForm.value.startDate)
-    startDate.setDate(startDate.getDate() + 30)
-    editForm.value.endDate = startDate.toISOString().split('T')[0]
-  }
-}
-
-const submitEdit = async () => {
-  if (!editingTicket.value) return
-
-  if (!editForm.value.lotId || !editForm.value.plate || !editForm.value.startDate || !editForm.value.endDate) {
-    editError.value = 'Vui lòng điền đầy đủ thông tin'
-    return
-  }
-
-  isSubmitting.value = true
-  editError.value = ''
-
-  try {
-    await apiClient.put(`/customer/monthly-tickets/${editingTicket.value.id}`, {
-      lotId: Number(editForm.value.lotId),
-      plate: editForm.value.plate,
-      startDate: editForm.value.startDate,
-      endDate: editForm.value.endDate
-    })
-
-    window.toast?.('Cập nhật vé tháng thành công!')
-    closeEditModal()
-
-    // Reload data
-    await monthlyTicketStore.fetchMonthlyTickets()
-    await monthlyTicketStore.fetchActiveMonthlyTickets()
-  } catch (error: any) {
-    console.error('Lỗi khi cập nhật vé tháng:', error)
-    editError.value = error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật vé tháng'
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const confirmDeleteTicket = (ticket: MonthlyTicketResponse) => {
-  if (confirm(`Bạn có chắc muốn xóa vé ${ticket.ticketCode}?\n\nVé này chưa thanh toán và sẽ bị hủy vĩnh viễn.`)) {
+const confirmDeleteTicket = async (ticket: MonthlyTicketResponse) => {
+  const isConfirmed = await (window.confirmDialog?.(`Bạn có chắc muốn xóa vé ${ticket.ticketCode}?\n\nVé này chưa thanh toán và sẽ bị hủy vĩnh viễn.`) ?? false)
+  if (isConfirmed) {
     deleteTicket(ticket.id)
   }
 }
@@ -1614,6 +1409,11 @@ const deleteTicket = async (ticketId: number) => {
   background: #eff6ff;
   padding: 3px 8px;
   border-radius: 6px;
+}
+.qr-price {
+  font-weight: 800;
+  color: #059669;
+  font-size: 14px;
 }
 .qr-actions { display: flex; justify-content: center; }
 
