@@ -96,13 +96,7 @@
           <span class="item-chevron-arrow">›</span>
         </router-link>
 
-        <router-link to="/customer/history" class="menu-nav-item-row">
-          <div class="item-row-left-content">
-            <span class="item-emoji-icon">📜</span>
-            <span class="item-label-text">Nhật ký lịch sử gửi xe</span>
-          </div>
-          <span class="item-chevron-arrow">›</span>
-        </router-link>
+
 
         <div class="menu-section-spacer"></div>
 
