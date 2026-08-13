@@ -5,13 +5,155 @@
       <div class="header-title-area">
         <h2 class="page-title">Giám sát Bãi đỗ Toàn hệ thống</h2>
       </div>
-      <div class="lot-selector-premium">
-        <i class="bi bi-geo-alt-fill"></i>
-        <select v-model="selectedLotId" @change="fetchMapData" class="premium-select-minimal">
-          <option v-for="lot in parkingLots" :key="lot.id" :value="lot.id">
-            {{ lot.name }}
-          </option>
-        </select>
+      <div class="header-actions">
+        <div class="search-box-container">
+          <i class="bi bi-search search-icon"></i>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Tìm kiếm biển số xe..."
+            class="search-input"
+            @input="handleSearch"
+          />
+          <button
+            v-if="searchQuery"
+            @click="clearSearch"
+            class="clear-search-btn"
+            title="Xóa tìm kiếm"
+          >
+            <i class="bi bi-x-circle-fill"></i>
+          </button>
+        </div>
+        <div class="lot-selector-premium">
+          <i class="bi bi-geo-alt-fill"></i>
+          <select v-model="selectedLotId" @change="fetchMapData" class="premium-select-minimal">
+            <option v-for="lot in parkingLots" :key="lot.id" :value="lot.id">
+              {{ lot.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Results Section -->
+    <div v-if="searchQuery" class="search-results-section margin-bottom-24">
+      <div class="search-results-header">
+        <div class="search-results-title">
+          <i class="bi bi-search"></i>
+          <span>Kết quả tìm kiếm: "<strong>{{ searchQuery }}</strong>"</span>
+        </div>
+        <div class="search-results-count">
+          {{ totalSearchResults }} xe được tìm thấy
+        </div>
+        <button @click="clearSearch" class="btn-close-search">
+          <i class="bi bi-x-lg"></i> Đóng
+        </button>
+      </div>
+
+      <div v-if="hasSearchResults" class="search-results-grid">
+        <!-- Vé thường - Đang đỗ -->
+        <div
+          v-for="spot in filteredOccupiedSpots"
+          :key="'occupied-' + spot.id"
+          class="search-result-card occupied-card"
+          @click="showSpotDetail(spot)"
+        >
+          <div class="card-status-badge occupied">ĐANG ĐỖ</div>
+          <div class="card-main-info">
+            <div class="info-row">
+              <i class="bi bi-person-fill"></i>
+              <span>{{ spot.customerName || 'Khách vãng lai' }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-telephone-fill"></i>
+              <span>{{ spot.phone || 'Chưa có thông tin' }}</span>
+            </div>
+            <div class="info-row plate-row">
+              <i class="bi bi-car-front-fill"></i>
+              <span class="plate-highlight">{{ spot.plate }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-clock-fill"></i>
+              <span>{{ spot.timeIn }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-ticket-fill"></i>
+              <span>{{ spot.ticketCode }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vé thường - Chờ -->
+        <div
+          v-for="spot in filteredPendingSpots"
+          :key="'pending-' + spot.id"
+          class="search-result-card pending-card"
+          @click="showSpotDetail(spot)"
+        >
+          <div class="card-status-badge pending">ĐANG CHỜ</div>
+          <div class="card-main-info">
+            <div class="info-row">
+              <i class="bi bi-person-fill"></i>
+              <span>{{ spot.customerName || 'Khách vãng lai' }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-telephone-fill"></i>
+              <span>{{ spot.phone || 'Chưa có thông tin' }}</span>
+            </div>
+            <div class="info-row plate-row">
+              <i class="bi bi-car-front-fill"></i>
+              <span class="plate-highlight">{{ spot.plate }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-clock-fill"></i>
+              <span>{{ spot.timeIn }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-ticket-fill"></i>
+              <span>{{ spot.ticketCode }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vé tháng -->
+        <div
+          v-for="ticket in filteredMonthlyTickets"
+          :key="'monthly-' + ticket.id"
+          class="search-result-card monthly-card"
+          @click="showMonthlyTicketDetail(ticket)"
+        >
+          <div class="card-status-badge monthly" :class="ticket.status.toLowerCase()">
+            {{ ticket.status === 'PARKED' ? 'ĐANG ĐỖ' : 'CHƯA VÀO' }}
+          </div>
+          <div class="card-main-info">
+            <div class="info-row">
+              <i class="bi bi-person-fill"></i>
+              <span>{{ ticket.customerName || 'Chưa có tên' }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-telephone-fill"></i>
+              <span>{{ ticket.phone || 'Chưa có thông tin' }}</span>
+            </div>
+            <div class="info-row plate-row">
+              <i class="bi bi-car-front-fill"></i>
+              <span class="plate-highlight">{{ ticket.plate }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-calendar-fill"></i>
+              <span>{{ ticket.startDate }} - {{ ticket.endDate }}</span>
+            </div>
+            <div class="info-row">
+              <i class="bi bi-ticket-fill"></i>
+              <span>{{ ticket.ticketCode }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="no-search-results">
+        <div class="no-results-icon">🔍</div>
+        <h3>Không tìm thấy xe nào</h3>
+        <p>Không có xe nào có biển số khớp với "<strong>{{ searchQuery }}</strong>"</p>
       </div>
     </div>
 
@@ -68,7 +210,7 @@
             v-for="spot in mapData?.spots"
             :key="spot.id"
             class="spot-premium"
-            :class="spot.status"
+            :class="[spot.status, { 'highlight-search': isSpotHighlighted(spot) }]"
             @click="showSpotDetail(spot)"
           >
             <div class="spot-marker"></div>
@@ -110,9 +252,9 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="spot in occupiedSpots" :key="spot.id">
+              <tr v-for="spot in filteredOccupiedSpots" :key="spot.id">
                 <td class="font-bold">{{ spot.id }}</td>
-                <td><span class="plate-label">{{ spot.plate }}</span></td>
+                <td><span class="plate-label" :class="{ 'highlight-text': isPlateMatched(spot.plate) }">{{ spot.plate }}</span></td>
                 <td><span class="ticket-type-badge normal">Vé thường</span></td>
                 <td class="text-muted">{{ spot.timeIn }}</td>
                 <td>
@@ -121,8 +263,10 @@
                   </button>
                 </td>
               </tr>
-              <tr v-if="occupiedSpots.length === 0">
-                <td colspan="5" class="empty-table">Chưa có xe nào đang đỗ</td>
+              <tr v-if="filteredOccupiedSpots.length === 0">
+                <td colspan="5" class="empty-table">
+                  {{ searchQuery ? 'Không tìm thấy xe nào khớp với tìm kiếm' : 'Chưa có xe nào đang đỗ' }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -147,9 +291,9 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="spot in pendingSpots" :key="spot.id">
+              <tr v-for="spot in filteredPendingSpots" :key="spot.id">
                 <td class="font-bold">{{ spot.id }}</td>
-                <td><span class="plate-label">{{ spot.plate }}</span></td>
+                <td><span class="plate-label" :class="{ 'highlight-text': isPlateMatched(spot.plate) }">{{ spot.plate }}</span></td>
                 <td><span class="ticket-type-badge normal">Vé thường</span></td>
                 <td class="text-muted">{{ spot.timeIn }}</td>
                 <td>
@@ -158,8 +302,10 @@
                   </button>
                 </td>
               </tr>
-              <tr v-if="pendingSpots.length === 0">
-                <td colspan="5" class="empty-table">Không có xe nào đang chờ</td>
+              <tr v-if="filteredPendingSpots.length === 0">
+                <td colspan="5" class="empty-table">
+                  {{ searchQuery ? 'Không tìm thấy xe nào khớp với tìm kiếm' : 'Không có xe nào đang chờ' }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -223,7 +369,7 @@
             <div
               v-if="monthlyTicketsArray[index - 1]"
               class="monthly-spot-premium"
-              :class="monthlyTicketsArray[index - 1].status.toLowerCase()"
+              :class="[monthlyTicketsArray[index - 1].status.toLowerCase(), { 'highlight-search': isMonthlyTicketHighlighted(monthlyTicketsArray[index - 1]) }]"
               @click="showMonthlyTicketDetail(monthlyTicketsArray[index - 1])"
             >
               <div class="monthly-spot-plate">{{ monthlyTicketsArray[index - 1].plate }}</div>
@@ -269,7 +415,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="ticket in monthlyTickets" :key="ticket.id">
+            <tr v-for="ticket in filteredMonthlyTickets" :key="ticket.id">
               <td><span class="ticket-code-small">#{{ ticket.ticketCode }}</span></td>
               <td>
                 <div class="customer-cell">
@@ -278,7 +424,7 @@
                 </div>
               </td>
               <td>{{ mapData?.lotName || '—' }}</td>
-              <td><span class="plate-label">{{ ticket.plate }}</span></td>
+              <td><span class="plate-label" :class="{ 'highlight-text': isPlateMatched(ticket.plate) }">{{ ticket.plate }}</span></td>
               <td class="text-muted">
                 <div class="date-range">
                   <div>Từ: {{ ticket.startDate }}</div>
@@ -300,8 +446,10 @@
                 </button>
               </td>
             </tr>
-            <tr v-if="monthlyTickets.length === 0">
-              <td colspan="8" class="empty-table">Chưa có vé tháng nào</td>
+            <tr v-if="filteredMonthlyTickets.length === 0">
+              <td colspan="8" class="empty-table">
+                {{ searchQuery ? 'Không tìm thấy vé tháng nào khớp với tìm kiếm' : 'Chưa có vé tháng nào' }}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -337,6 +485,14 @@
                 <div class="detail-item">
                   <label>Mã vé tháng</label>
                   <span class="val-text ticket-code">#{{ selectedSpot.ticketCode }}</span>
+                </div>
+                <div class="detail-item">
+                  <label>Khách hàng</label>
+                  <span class="val-text">{{ (selectedSpot as any).customerName || 'Chưa có thông tin' }}</span>
+                </div>
+                <div class="detail-item">
+                  <label>Số điện thoại</label>
+                  <span class="val-text">{{ (selectedSpot as any).phone || 'Chưa có thông tin' }}</span>
                 </div>
                 <div class="detail-item">
                   <label>Biển số xe</label>
@@ -426,6 +582,7 @@ const selectedLotId = ref<number | null>(null)
 const mapData = ref<MapData | null>(null)
 const loading = ref(false)
 const selectedSpot = ref<ParkingSpot | null>(null)
+const searchQuery = ref<string>('')
 let refreshInterval: ReturnType<typeof setInterval> | null = null
 
 const occupancyRate = computed(() => {
@@ -466,6 +623,72 @@ const monthlyTicketsArray = computed(() => {
   return arr
 })
 
+// Filtered lists based on search query
+const filteredOccupiedSpots = computed(() => {
+  if (!searchQuery.value.trim()) return occupiedSpots.value
+  const query = searchQuery.value.toLowerCase().trim()
+  return occupiedSpots.value.filter(s => s.plate?.toLowerCase().includes(query))
+})
+
+const filteredPendingSpots = computed(() => {
+  if (!searchQuery.value.trim()) return pendingSpots.value
+  const query = searchQuery.value.toLowerCase().trim()
+  return pendingSpots.value.filter(s => s.plate?.toLowerCase().includes(query))
+})
+
+const filteredMonthlyTickets = computed(() => {
+  if (!searchQuery.value.trim()) return monthlyTickets.value
+  const query = searchQuery.value.toLowerCase().trim()
+  return monthlyTickets.value.filter(t => t.plate?.toLowerCase().includes(query))
+})
+
+// Helper functions for highlighting
+const isSpotHighlighted = (spot: ParkingSpot): boolean => {
+  if (!searchQuery.value.trim()) return false
+  const query = searchQuery.value.toLowerCase().trim()
+  return spot.plate?.toLowerCase().includes(query) || false
+}
+
+const isMonthlyTicketHighlighted = (ticket: ParkingSpot): boolean => {
+  if (!searchQuery.value.trim()) return false
+  const query = searchQuery.value.toLowerCase().trim()
+  return ticket.plate?.toLowerCase().includes(query) || false
+}
+
+const isPlateMatched = (plate?: string): boolean => {
+  if (!searchQuery.value.trim() || !plate) return false
+  const query = searchQuery.value.toLowerCase().trim()
+  return plate.toLowerCase().includes(query)
+}
+
+const handleSearch = () => {
+  // Trigger reactivity for computed properties
+  console.log('🔍 Admin Search query:', searchQuery.value)
+  console.log('📊 Total occupied:', occupiedSpots.value.length)
+  console.log('📊 Filtered occupied:', filteredOccupiedSpots.value.length)
+  console.log('📊 Total pending:', pendingSpots.value.length)
+  console.log('📊 Filtered pending:', filteredPendingSpots.value.length)
+  console.log('📊 Total monthly:', monthlyTickets.value.length)
+  console.log('📊 Filtered monthly:', filteredMonthlyTickets.value.length)
+  console.log('✅ Has results:', hasSearchResults.value)
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
+}
+
+const hasSearchResults = computed(() => {
+  return filteredOccupiedSpots.value.length > 0 ||
+         filteredPendingSpots.value.length > 0 ||
+         filteredMonthlyTickets.value.length > 0
+})
+
+const totalSearchResults = computed(() => {
+  return filteredOccupiedSpots.value.length +
+         filteredPendingSpots.value.length +
+         filteredMonthlyTickets.value.length
+})
+
 const fetchLots = async () => {
   try {
     const res = await AdminService.getParkingLots() as unknown as ParkingLot[]
@@ -498,7 +721,9 @@ const showMonthlyTicketDetail = (ticket: ParkingSpot) => {
     ...ticket,
     id: ticket.ticketCode,
     status: 'monthly',
-    monthlyStatus: ticket.status
+    monthlyStatus: ticket.status,
+    customerName: ticket.customerName,
+    phone: ticket.phone
   }
 }
 
@@ -526,12 +751,296 @@ onUnmounted(() => {
 /* Header */
 .page-header-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #e2e8f0; }
 
+.header-actions { display: flex; align-items: center; gap: 16px; }
+
+.search-box-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  border: 1px solid #f1f5f9;
+  min-width: 280px;
+}
+
+.search-icon {
+  color: #64748b;
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #1e293b;
+  flex: 1;
+  background: transparent;
+  font-weight: 500;
+}
+
+.search-input::placeholder {
+  color: #94a3b8;
+}
+
+.clear-search-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 8px;
+  color: #94a3b8;
+  font-size: 16px;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.clear-search-btn:hover {
+  color: #ef4444;
+}
+
+/* Highlight classes for search results */
+.highlight-search {
+  animation: pulse-highlight 1.5s ease-in-out infinite;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4) !important;
+  border-color: #3b82f6 !important;
+}
+
+.highlight-text {
+  background: linear-gradient(120deg, #fef08a 0%, #fde047 100%);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
+@keyframes pulse-highlight {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.2);
+  }
+}
+
 @media (max-width: 768px) {
   .page-header-wrapper { flex-direction: column; align-items: flex-start; gap: 20px; }
   .header-title-area { width: 100%; }
+  .header-actions { width: 100%; flex-direction: column; }
+  .search-box-container { width: 100%; }
   .lot-selector-premium { width: 100%; justify-content: space-between; }
   .admin-page-container { padding: 16px; }
 }
+
+/* Search Results Section */
+.search-results-section {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border-radius: 20px;
+  padding: 24px;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+}
+
+.search-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.search-results-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.search-results-title i {
+  font-size: 20px;
+}
+
+.search-results-count {
+  background: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #2563eb;
+  border: 1px solid #93c5fd;
+}
+
+.btn-close-search {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.btn-close-search:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.search-results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.search-result-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+.search-result-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.search-result-card.occupied-card {
+  border-color: #fca5a5;
+  background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+}
+
+.search-result-card.pending-card {
+  border-color: #fcd34d;
+  background: linear-gradient(135deg, #ffffff 0%, #fffbeb 100%);
+}
+
+.search-result-card.monthly-card {
+  border-color: #c4b5fd;
+  background: linear-gradient(135deg, #ffffff 0%, #faf5ff 100%);
+}
+
+.card-status-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.card-status-badge.occupied {
+  background: #ef4444;
+  color: white;
+}
+
+.card-status-badge.pending {
+  background: #f59e0b;
+  color: white;
+}
+
+.card-status-badge.monthly.parked {
+  background: #10b981;
+  color: white;
+}
+
+.card-status-badge.monthly.pending {
+  background: #f59e0b;
+  color: white;
+}
+
+.card-main-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.info-row i {
+  font-size: 14px;
+  color: #64748b;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.info-row.plate-row {
+  margin: 4px 0;
+}
+
+.plate-highlight {
+  background: #0f172a;
+  color: #facc15;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 1024px) {
+  .search-results-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .search-results-grid {
+    grid-template-columns: 1fr;
+  }
+  .search-results-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.no-search-results {
+  text-align: center;
+  padding: 60px 20px;
+  color: #64748b;
+}
+
+.no-results-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.no-search-results h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 8px 0;
+}
+
+.no-search-results p {
+  font-size: 14px;
+  margin: 0;
+}
+
 .page-title { font-size: 26px; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -0.5px; }
 .lot-selector-premium { display: flex; align-items: center; gap: 12px; background: white; padding: 8px 16px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; }
 .lot-selector-premium i { color: #2563eb; font-size: 18px; }
